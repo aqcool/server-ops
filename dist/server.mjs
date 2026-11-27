@@ -39464,7 +39464,7 @@ async function checkForUpdates({
 
 // src/server.mjs
 var PICKER_URI = "ui://server-ops/picker.html";
-var VERSION = "0.3.0";
+var VERSION = "0.3.1";
 var resource = {
   uri: PICKER_URI,
   name: "Server Ops",

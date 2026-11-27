@@ -1,6 +1,6 @@
 {
   "name": "antigravity-server-ops",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Standalone SSH server-ops MCP Server & MCP App plugin for Google Antigravity and MCP clients with encrypted credential storage.",
   "type": "module",
   "license": "MIT",

@@ -5,7 +5,7 @@ import {
 } from "@modelcontextprotocol/ext-apps";
 
 const app = new App(
-  { name: "Server Ops", version: "0.3.0" },
+  { name: "Server Ops", version: "0.3.1" },
   { availableDisplayModes: ["inline"] },
   { autoResize: false },
 );
@@ -123,7 +123,7 @@ let busy = false;
 let testingId = null;
 let editingProfile = null;
 let authType = "password";
-let appVersion = "0.3.0";
+let appVersion = "0.3.1";
 let checkingUpdate = false;
 let latestUpdateInfo = null;
 

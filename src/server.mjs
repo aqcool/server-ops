@@ -17,7 +17,7 @@ import { execRemote, testConnection, uploadRemote } from "./ssh-backend.mjs";
 import { checkForUpdates } from "./update-checker.mjs";
 
 const PICKER_URI = "ui://server-ops/picker.html";
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 const resource = {
   uri: PICKER_URI,

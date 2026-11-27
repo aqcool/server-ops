@@ -1,7 +1,7 @@
 {
   "name": "server-ops",
   "displayName": "Server Ops",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Manage SSH servers with ZCode-style encrypted credential storage, authorize hosts via MCP App UI, execute remote commands, and atomically upload files.",
   "repository": {
     "type": "git",
