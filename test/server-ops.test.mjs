@@ -10,7 +10,7 @@ import {
   parseDarwinPhysicalInterface,
 } from "../src/direct-socket.mjs";
 import { createProfileStore } from "../src/profile-store.mjs";
-import { quotePosixShellArg } from "../src/ssh-backend.mjs";
+import { quotePosixShellArg, testConnection } from "../src/ssh-backend.mjs";
 import { checkForUpdates, compareSemver } from "../src/update-checker.mjs";
 
 test("profileStore separates metadata from encrypted credentials and never leaks secrets", async () => {
@@ -156,4 +156,26 @@ test("compareSemver and checkForUpdates check npm first and fallback to GitHub",
   });
   assert.equal(fallbackHit.hasUpdate, false);
   assert.equal(fallbackHit.latestVersion, "0.3.0");
+});
+
+test("testConnection with bypassProxy rejects cleanly without unhandled error event on unreachable port", async () => {
+  if (process.platform !== "darwin") return;
+  await assert.rejects(
+    () =>
+      testConnection(
+        {
+          profile: {
+            target: {
+              host: "127.0.0.1",
+              port: 1,
+              username: "root",
+              bypassProxy: true,
+            },
+          },
+          password: "dummy",
+        },
+        { signal: AbortSignal.timeout(4000) },
+      ),
+    (err) => err instanceof Error && err.message.length > 0,
+  );
 });

@@ -92,10 +92,12 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
 
     combinedSignal.addEventListener("abort", onAbort, { once: true });
 
+    // 使用 .on 而非 .once：directStream 销毁触发 close 时，ssh2 Client 可能在 teardown
+    // 阶段再次 emit 'error'（如 Connection lost before handshake），若无监听器会直接崩掉 MCP 进程。
     if (directStream) {
-      directStream.once("error", (err) => finish(err));
+      directStream.on("error", (err) => finish(err));
     }
-    client.once("error", (err) => finish(err));
+    client.on("error", (err) => finish(err));
     client.once("ready", async () => {
       try {
         const result = await fn(client, combinedSignal);

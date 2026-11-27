@@ -38972,6 +38972,12 @@ function wrapChildAsDuplex(child, label) {
       stderrText += chunk.toString("utf8");
     }
   });
+  child.stdin?.on("error", () => {
+  });
+  child.stdout?.on("error", () => {
+  });
+  child.stderr?.on("error", () => {
+  });
   const killChild = () => {
     if (closed) return;
     closed = true;
@@ -39225,9 +39231,9 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
     };
     combinedSignal.addEventListener("abort", onAbort, { once: true });
     if (directStream) {
-      directStream.once("error", (err) => finish(err));
+      directStream.on("error", (err) => finish(err));
     }
-    client.once("error", (err) => finish(err));
+    client.on("error", (err) => finish(err));
     client.once("ready", async () => {
       try {
         const result = await fn(client, combinedSignal);

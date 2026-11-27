@@ -70,6 +70,10 @@ function wrapChildAsDuplex(child, label) {
       stderrText += chunk.toString("utf8");
     }
   });
+  // 防止子进程提前退出后写入 stdin 触发未捕获的 EPIPE 导致 MCP 进程崩溃
+  child.stdin?.on("error", () => {});
+  child.stdout?.on("error", () => {});
+  child.stderr?.on("error", () => {});
 
   const killChild = () => {
     if (closed) return;
