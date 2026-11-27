@@ -1,7 +1,7 @@
 {
   "name": "server-ops-mcp",
-  "version": "0.1.0",
-  "description": "Standalone MCP server and MCP App plugin for Antigravity and MCP clients: select SSH hosts via an interactive UI, execute remote commands, and atomically upload files.",
+  "version": "0.2.0",
+  "description": "Standalone MCP server and MCP App plugin for Antigravity and MCP clients: manage SSH servers with encrypted credential storage, authorize hosts via UI, execute remote commands, and atomically upload files.",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -38,6 +38,7 @@
     "@modelcontextprotocol/ext-apps": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "esbuild": "^0.25.0",
+    "ssh2": "^1.16.0",
     "zod": "^3.24.0"
   }
 }

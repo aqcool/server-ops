@@ -6,143 +6,603 @@
 <style>
   :root {
     color-scheme: light dark;
-    color: var(--color-text-primary, CanvasText);
-    font: var(--font-text-md-size, .875rem)/1.45 var(--font-sans, system-ui, sans-serif);
+    --bg: var(--color-background-primary, #ffffff);
+    --bg-subtle: var(--color-background-secondary, #f7f7f8);
+    --bg-hover: var(--color-background-tertiary, #efefef);
+    --text: var(--color-text-primary, #18181b);
+    --text-muted: var(--color-text-secondary, #71717a);
+    --border: var(--color-border-primary, rgba(0, 0, 0, 0.09));
+    --border-strong: var(--color-border-secondary, rgba(0, 0, 0, 0.16));
+    --accent: var(--color-ring-primary, #18181b);
+    --accent-fg: var(--color-text-inverse, #ffffff);
+    --danger: var(--color-text-danger, #dc2626);
+    --success: var(--color-text-success, #16a34a);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    font: 14px/1.5 var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    color: var(--text);
+    background: var(--bg);
   }
-  :root[data-theme="light"] { color-scheme: light; }
-  :root[data-theme="dark"] { color-scheme: dark; }
-  body { margin: 0; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: var(--color-background-primary, #111113);
+    --bg-subtle: var(--color-background-secondary, #1a1a1e);
+    --bg-hover: var(--color-background-tertiary, #242429);
+    --text: var(--color-text-primary, #f4f4f5);
+    --text-muted: var(--color-text-secondary, #a1a1aa);
+    --border: var(--color-border-primary, rgba(255, 255, 255, 0.1));
+    --border-strong: var(--color-border-secondary, rgba(255, 255, 255, 0.18));
+    --accent: var(--color-ring-primary, #f4f4f5);
+    --accent-fg: var(--color-text-inverse, #111113);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); }
   [hidden] { display: none !important; }
-  .picker {
-    box-sizing: border-box;
-    max-inline-size: 28rem;
-    margin: 0;
-    padding: 8px;
-    border: 1px solid var(--color-border-primary, transparent);
-    border-radius: var(--border-radius-lg, 8px);
-    background: var(--color-background-primary, Canvas);
+
+  .page {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 28px 24px 36px;
   }
-  .header {
+
+  body.compact .page {
+    max-width: 100%;
+    padding: 12px 14px 14px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  body.compact .topbar {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .heading {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  body.compact h1 {
+    font-size: 14px;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  body.compact .subtitle {
+    display: none;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .pill.active {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  }
+
+  .btn:hover:not(:disabled) { background: var(--bg-subtle); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: transparent;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent);
+    opacity: 0.88;
+  }
+
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+  .btn-ghost.danger:hover:not(:disabled) {
+    color: var(--danger);
+  }
+
+  body.compact .btn-add {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .banner {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+  .banner.error {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  }
+  .banner.success {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 2px 6px 8px;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    transition: border-color 120ms ease, background 120ms ease;
   }
-  .header-left {
+
+  .card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .card.selected {
+    background: var(--bg-subtle);
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  }
+
+  body.compact .card {
+    padding: 9px 11px;
+  }
+
+  .card-main {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-inline-size: 0;
-  }
-  #title {
-    margin: 0;
-    font-size: .875rem;
-    font-weight: 600;
-  }
-  #count {
-    color: var(--color-text-secondary, GrayText);
-    font-size: .75rem;
-  }
-  #refresh-btn {
-    border: 1px solid var(--color-border-primary, ButtonBorder);
-    border-radius: 6px;
-    padding: 2px 8px;
-    background: var(--color-background-secondary, ButtonFace);
-    color: var(--color-text-primary, ButtonText);
-    font: inherit;
-    font-size: .75rem;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
     cursor: pointer;
   }
-  #refresh-btn:hover {
-    opacity: .85;
-  }
-  #servers {
-    display: grid;
-    gap: 2px;
-    max-block-size: 16rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .server {
+
+  .check-wrap {
     position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-inline-size: 0;
-    min-block-size: 32px;
-    padding: 4px 8px;
-    border-radius: var(--border-radius-md, 6px);
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  .check-wrap input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
     cursor: pointer;
   }
-  .server:hover,
-  .server:has(:focus-visible),
-  .server:has(input:checked) {
-    background: var(--color-background-secondary, ButtonFace);
+
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-fg);
+    transition: all 120ms ease;
   }
-  .server input { position: absolute; inset-inline-start: 8px; opacity: 0; }
-  .mark { display: inline-grid; flex: 0 0 14px; block-size: 16px; place-items: center; }
-  .server input:checked + .mark::before { content: "✓"; font-weight: 600; }
-  .server input:focus-visible + .mark { outline: 2px solid var(--color-ring-primary, Highlight); }
-  .server-info {
+
+  .check-wrap input:checked + .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check-wrap input:focus-visible + .check-box {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .info {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    min-inline-size: 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
     flex: 1;
   }
-  .server-name {
+
+  .name-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .name {
     font-weight: 500;
+    font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .server-sub {
-    color: var(--color-text-secondary, GrayText);
-    font-size: .75rem;
+
+  .tag {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .meta-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .server:has(input:disabled) { opacity: .6; cursor: default; }
-  #loading, #status {
-    margin: 0;
-    padding: 5px 7px;
-    color: var(--color-text-secondary, GrayText);
-    font-size: var(--font-text-sm-size, .8rem);
+
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
   }
-  #empty {
+  .status-dot::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .status-dot.ok { color: var(--success); }
+  .status-dot.err { color: var(--danger); }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    padding: 48px 24px;
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--border-strong);
+    background: var(--bg-subtle);
+  }
+
+  body.compact .empty {
+    padding: 20px 14px;
+  }
+
+  .empty-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
     display: grid;
-    gap: 3px;
-    padding: 8px;
+    place-items: center;
+    color: var(--text-muted);
   }
-  #empty p { margin: 0; }
-  #empty-title { font-weight: 500; }
-  #empty-hint {
-    color: var(--color-text-secondary, GrayText);
-    font-size: var(--font-text-sm-size, .8rem);
-    text-wrap: pretty;
+
+  .empty h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
   }
-  #status { color: var(--color-text-danger, CanvasText); }
+
+  .empty p {
+    margin: 0;
+    max-width: 360px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Modal */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.36);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 20;
+  }
+
+  .dialog {
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    padding: 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .dialog-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 96px;
+    gap: 10px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .field input {
+    height: 36px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  .field-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+  }
+
+  .seg button {
+    height: 30px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .seg button.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+
+  .dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 520px) {
+    .page { padding: 14px 12px; }
+    .card { flex-direction: column; align-items: stretch; }
+    .actions { justify-content: flex-end; padding-top: 4px; border-top: 1px solid var(--border); }
+    .row-2 { grid-template-columns: 1fr 80px; }
+  }
 </style>
 </head>
 <body>
-<main class="picker" id="picker">
-  <header class="header">
-    <div class="header-left">
-      <h1 id="title"></h1>
-      <span id="count"></span>
+<main class="page" id="app-root">
+  <header class="topbar">
+    <div class="heading">
+      <div class="title-row">
+        <h1 id="page-title"></h1>
+        <span class="pill" id="count-pill"></span>
+      </div>
+      <p class="subtitle" id="page-subtitle"></p>
     </div>
-    <button id="refresh-btn" type="button"></button>
+    <button class="btn btn-primary btn-add" id="add-btn" type="button"></button>
   </header>
-  <p id="loading" role="status"></p>
-  <div id="servers"></div>
-  <div id="empty" hidden>
-    <p id="empty-title"></p>
+
+  <div class="banner" id="banner" role="status" hidden></div>
+
+  <section class="list" id="server-list"></section>
+
+  <section class="empty" id="empty-state" hidden>
+    <div class="empty-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="8" rx="2"/>
+        <rect x="2" y="13" width="20" height="8" rx="2"/>
+        <line x1="6" y1="7" x2="6.01" y2="7"/>
+        <line x1="6" y1="17" x2="6.01" y2="17"/>
+      </svg>
+    </div>
+    <h2 id="empty-title"></h2>
     <p id="empty-hint"></p>
-  </div>
-  <p id="status" role="alert" hidden></p>
+    <button class="btn btn-primary" id="empty-add-btn" type="button"></button>
+  </section>
 </main>
+
+<div class="backdrop" id="modal-backdrop" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="dialog-header">
+      <h2 id="modal-title"></h2>
+      <button class="btn btn-ghost" id="modal-close" type="button" aria-label="Close">✕</button>
+    </div>
+    <form class="form" id="profile-form">
+      <div class="field">
+        <label for="f-name" id="lbl-name"></label>
+        <input id="f-name" type="text" autocomplete="off">
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-host" id="lbl-host"></label>
+          <input id="f-host" type="text" required autocomplete="off" placeholder="10.0.0.10">
+        </div>
+        <div class="field">
+          <label for="f-port" id="lbl-port"></label>
+          <input id="f-port" type="number" min="1" max="65535" value="22" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-user" id="lbl-user"></label>
+        <input id="f-user" type="text" required autocomplete="off" placeholder="root">
+      </div>
+      <div class="field">
+        <label id="lbl-auth"></label>
+        <div class="seg">
+          <button type="button" id="seg-password"></button>
+          <button type="button" id="seg-key"></button>
+        </div>
+      </div>
+      <div class="field" id="group-password">
+        <label for="f-password" id="lbl-password"></label>
+        <input id="f-password" type="password" autocomplete="new-password">
+        <span class="field-hint" id="hint-password" hidden></span>
+      </div>
+      <div class="field" id="group-key" hidden>
+        <label for="f-keypath" id="lbl-keypath"></label>
+        <input id="f-keypath" type="text" autocomplete="off" placeholder="~/.ssh/id_ed25519">
+      </div>
+      <div class="field" id="group-passphrase" hidden>
+        <label for="f-passphrase" id="lbl-passphrase"></label>
+        <input id="f-passphrase" type="password" autocomplete="new-password">
+        <span class="field-hint" id="hint-passphrase" hidden></span>
+      </div>
+      <div class="banner error" id="form-error" hidden></div>
+      <div class="dialog-footer">
+        <button class="btn" id="cancel-btn" type="button"></button>
+        <button class="btn btn-primary" id="save-btn" type="submit"></button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>(() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -688,8 +1148,8 @@
         }
       });
       getParsedType = (data) => {
-        const t = typeof data;
-        switch (t) {
+        const t2 = typeof data;
+        switch (t2) {
           case "undefined":
             return "undefined";
           case "string":
@@ -728,7 +1188,7 @@
             }
             return "object";
           default:
-            throw new Error(`Unknown data type: ${t}`);
+            throw new Error(`Unknown data type: ${t2}`);
         }
       };
       propertyKeyTypes = /* @__PURE__ */ new Set(["string", "number", "symbol"]);
@@ -2630,11 +3090,11 @@
           const unrecognized = [];
           const keySet = value.keySet;
           const _catchall = catchall._zod;
-          const t = _catchall.def.type;
+          const t2 = _catchall.def.type;
           for (const key of Object.keys(input)) {
             if (keySet.has(key))
               continue;
-            if (t === "never") {
+            if (t2 === "never") {
               unrecognized.push(key);
               continue;
             }
@@ -3343,8 +3803,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -3360,7 +3820,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0645\u062F\u062E\u0644",
@@ -3466,8 +3926,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -3483,7 +3943,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "input",
@@ -3631,8 +4091,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u043B\u0456\u043A";
             }
@@ -3648,7 +4108,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0443\u0432\u043E\u0434",
@@ -3759,8 +4219,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -3776,7 +4236,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "entrada",
@@ -3885,8 +4345,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u010D\xEDslo";
             }
@@ -3920,7 +4380,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "regul\xE1rn\xED v\xFDraz",
@@ -4027,8 +4487,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "Zahl";
             }
@@ -4044,7 +4504,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "Eingabe",
@@ -4140,8 +4600,8 @@
     "node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/locales/en.js"() {
       init_util();
       parsedType = (data) => {
-        const t = typeof data;
-        switch (t) {
+        const t2 = typeof data;
+        switch (t2) {
           case "number": {
             return Number.isNaN(data) ? "NaN" : "number";
           }
@@ -4157,7 +4617,7 @@
             }
           }
         }
-        return t;
+        return t2;
       };
       error7 = () => {
         const Sizable = {
@@ -4264,8 +4724,8 @@
     "node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/locales/eo.js"() {
       init_util();
       parsedType2 = (data) => {
-        const t = typeof data;
-        switch (t) {
+        const t2 = typeof data;
+        switch (t2) {
           case "number": {
             return Number.isNaN(data) ? "NaN" : "nombro";
           }
@@ -4281,7 +4741,7 @@
             }
           }
         }
-        return t;
+        return t2;
       };
       error8 = () => {
         const Sizable = {
@@ -4397,8 +4857,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "n\xFAmero";
             }
@@ -4414,7 +4874,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "entrada",
@@ -4521,8 +4981,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0639\u062F\u062F";
             }
@@ -4538,7 +4998,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0648\u0631\u0648\u062F\u06CC",
@@ -4654,8 +5114,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -4671,7 +5131,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "s\xE4\xE4nn\xF6llinen lauseke",
@@ -4779,8 +5239,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "nombre";
             }
@@ -4796,7 +5256,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "entr\xE9e",
@@ -4902,8 +5362,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -4919,7 +5379,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "entr\xE9e",
@@ -5026,8 +5486,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -5043,7 +5503,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u05E7\u05DC\u05D8",
@@ -5150,8 +5610,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "sz\xE1m";
             }
@@ -5167,7 +5627,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "bemenet",
@@ -5274,8 +5734,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -5291,7 +5751,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "input",
@@ -5397,8 +5857,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "numero";
             }
@@ -5414,7 +5874,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "input",
@@ -5521,8 +5981,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u6570\u5024";
             }
@@ -5538,7 +5998,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u5165\u529B\u5024",
@@ -5643,8 +6103,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "\u1798\u17B7\u1793\u1798\u17C2\u1793\u1787\u17B6\u179B\u17C1\u1781 (NaN)" : "\u179B\u17C1\u1781";
             }
@@ -5660,7 +6120,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u1791\u17B7\u1793\u17D2\u1793\u1793\u17D0\u1799\u1794\u1789\u17D2\u1785\u17BC\u179B",
@@ -5767,8 +6227,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -5784,7 +6244,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\uC785\uB825",
@@ -5895,8 +6355,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0431\u0440\u043E\u0458";
             }
@@ -5912,7 +6372,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0432\u043D\u0435\u0441",
@@ -6020,8 +6480,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "nombor";
             }
@@ -6037,7 +6497,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "input",
@@ -6143,8 +6603,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "getal";
             }
@@ -6160,7 +6620,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "invoer",
@@ -6267,8 +6727,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "tall";
             }
@@ -6284,7 +6744,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "input",
@@ -6390,8 +6850,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "numara";
             }
@@ -6407,7 +6867,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "giren",
@@ -6514,8 +6974,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0639\u062F\u062F";
             }
@@ -6531,7 +6991,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0648\u0631\u0648\u062F\u064A",
@@ -6643,8 +7103,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "liczba";
             }
@@ -6660,7 +7120,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "wyra\u017Cenie",
@@ -6767,8 +7227,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "n\xFAmero";
             }
@@ -6784,7 +7244,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "padr\xE3o",
@@ -6933,8 +7393,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0447\u0438\u0441\u043B\u043E";
             }
@@ -6950,7 +7410,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0432\u0432\u043E\u0434",
@@ -7061,8 +7521,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0161tevilo";
             }
@@ -7078,7 +7538,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "vnos",
@@ -7185,8 +7645,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "antal";
             }
@@ -7202,7 +7662,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "regulj\xE4rt uttryck",
@@ -7310,8 +7770,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "\u0B8E\u0BA3\u0BCD \u0B85\u0BB2\u0BCD\u0BB2\u0BBE\u0BA4\u0BA4\u0BC1" : "\u0B8E\u0BA3\u0BCD";
             }
@@ -7327,7 +7787,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0B89\u0BB3\u0BCD\u0BB3\u0BC0\u0B9F\u0BC1",
@@ -7434,8 +7894,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 (NaN)" : "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02";
             }
@@ -7451,7 +7911,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E1B\u0E49\u0E2D\u0E19",
@@ -7548,8 +8008,8 @@
     "node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/locales/tr.js"() {
       init_util();
       parsedType3 = (data) => {
-        const t = typeof data;
-        switch (t) {
+        const t2 = typeof data;
+        switch (t2) {
           case "number": {
             return Number.isNaN(data) ? "NaN" : "number";
           }
@@ -7565,7 +8025,7 @@
             }
           }
         }
-        return t;
+        return t2;
       };
       error34 = () => {
         const Sizable = {
@@ -7680,8 +8140,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0447\u0438\u0441\u043B\u043E";
             }
@@ -7697,7 +8157,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0432\u0445\u0456\u0434\u043D\u0456 \u0434\u0430\u043D\u0456",
@@ -7804,8 +8264,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "\u0646\u0645\u0628\u0631";
             }
@@ -7821,7 +8281,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0627\u0646 \u067E\u0679",
@@ -7928,8 +8388,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "s\u1ED1";
             }
@@ -7945,7 +8405,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u0111\u1EA7u v\xE0o",
@@ -8051,8 +8511,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "\u975E\u6570\u5B57(NaN)" : "\u6570\u5B57";
             }
@@ -8068,7 +8528,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u8F93\u5165",
@@ -8174,8 +8634,8 @@
           return Sizable[origin] ?? null;
         }
         const parsedType4 = (data) => {
-          const t = typeof data;
-          switch (t) {
+          const t2 = typeof data;
+          switch (t2) {
             case "number": {
               return Number.isNaN(data) ? "NaN" : "number";
             }
@@ -8191,7 +8651,7 @@
               }
             }
           }
-          return t;
+          return t2;
         };
         const Nouns = {
           regex: "\u8F38\u5165",
@@ -9006,10 +9466,10 @@
   function _toUpperCase() {
     return _overwrite((input) => input.toUpperCase());
   }
-  function _array(Class2, element2, params) {
+  function _array(Class2, element, params) {
     return new Class2({
       type: "array",
-      element: element2,
+      element,
       // get element() {
       //   return element;
       // },
@@ -10644,8 +11104,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   function date3(params) {
     return _date(ZodDate, params);
   }
-  function array(element2, params) {
-    return _array(ZodArray, element2, params);
+  function array(element, params) {
+    return _array(ZodArray, element, params);
   }
   function keyof(schema) {
     const shape = schema._zod.def.shape;
@@ -13571,8 +14031,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   };
 
   // node_modules/.pnpm/@modelcontextprotocol+sdk@1.32.2_zod@3.25.76/node_modules/@modelcontextprotocol/sdk/dist/esm/experimental/tasks/interfaces.js
-  function isTerminal(status2) {
-    return status2 === "completed" || status2 === "failed" || status2 === "cancelled";
+  function isTerminal(status) {
+    return status === "completed" || status === "failed" || status === "cancelled";
   }
 
   // node_modules/.pnpm/zod-to-json-schema@3.25.2_zod@3.25.76/node_modules/zod-to-json-schema/dist/esm/Options.js
@@ -14515,8 +14975,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           }
           return task;
         },
-        storeTaskResult: async (taskId, status2, result) => {
-          await taskStore.storeTaskResult(taskId, status2, result, sessionId);
+        storeTaskResult: async (taskId, status, result) => {
+          await taskStore.storeTaskResult(taskId, status, result, sessionId);
           const task = await taskStore.getTask(taskId, sessionId);
           if (task) {
             const notification = TaskStatusNotificationSchema.parse({
@@ -14532,15 +14992,15 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         getTaskResult: (taskId) => {
           return taskStore.getTaskResult(taskId, sessionId);
         },
-        updateTaskStatus: async (taskId, status2, statusMessage) => {
+        updateTaskStatus: async (taskId, status, statusMessage) => {
           const task = await taskStore.getTask(taskId, sessionId);
           if (!task) {
             throw new McpError(ErrorCode.InvalidParams, `Task "${taskId}" not found - it may have been cleaned up`);
           }
           if (isTerminal(task.status)) {
-            throw new McpError(ErrorCode.InvalidParams, `Cannot update task "${taskId}" from terminal status "${task.status}" to "${status2}". Terminal states (completed, failed, cancelled) cannot transition to other states.`);
+            throw new McpError(ErrorCode.InvalidParams, `Cannot update task "${taskId}" from terminal status "${task.status}" to "${status}". Terminal states (completed, failed, cancelled) cannot transition to other states.`);
           }
-          await taskStore.updateTaskStatus(taskId, status2, statusMessage, sessionId);
+          await taskStore.updateTaskStatus(taskId, status, statusMessage, sessionId);
           const updatedTask = await taskStore.getTask(taskId, sessionId);
           if (updatedTask) {
             const notification = TaskStatusNotificationSchema.parse({
@@ -14597,8 +15057,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         let Z = this.eventSchemas[X];
         if (!Z) throw Error(`Unknown event: ${String(X)}`);
         Y = { listeners: [] }, this._eventSlots.set(X, Y);
-        let $ = Z.shape.method.value;
-        this._registeredMethods.add($);
+        let $2 = Z.shape.method.value;
+        this._registeredMethods.add($2);
         let D = Y;
         super.setNotificationHandler(Z, (J) => {
           let K = J.params;
@@ -14622,8 +15082,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
     removeEventListener(X, Y) {
       let Z = this._eventSlots.get(X);
       if (!Z) return;
-      let $ = Z.listeners.indexOf(Y);
-      if ($ !== -1) Z.listeners.splice($, 1);
+      let $2 = Z.listeners.indexOf(Y);
+      if ($2 !== -1) Z.listeners.splice($2, 1);
     }
     setRequestHandler = (X, Y) => {
       this._assertMethodNotRegistered(X, "setRequestHandler"), super.setRequestHandler(X, Y);
@@ -14658,10 +15118,10 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           console.debug("Ignoring message from unknown source", Z);
           return;
         }
-        let $ = JSONRPCMessageSchema.safeParse(Z.data);
-        if ($.success) console.debug("Parsed message", $.data), this.onmessage?.($.data);
-        else if (Z.data?.jsonrpc !== "2.0") console.debug("Ignoring non-JSON-RPC message", $.error.message, Z);
-        else console.error("Failed to parse message", $.error.message, Z), this.onerror?.(Error("Invalid JSON-RPC message received: " + $.error.message));
+        let $2 = JSONRPCMessageSchema.safeParse(Z.data);
+        if ($2.success) console.debug("Parsed message", $2.data), this.onmessage?.($2.data);
+        else if (Z.data?.jsonrpc !== "2.0") console.debug("Ignoring non-JSON-RPC message", $2.error.message, Z);
+        else console.error("Failed to parse message", $2.error.message, Z), this.onerror?.(Error("Invalid JSON-RPC message received: " + $2.error.message));
       };
     }
     async start() {
@@ -14762,28 +15222,28 @@ container holding the app. Specify either width or maxWidth, and either height o
     let Z = X["~standard"];
     if (Z.jsonSchema) return Z.jsonSchema[Y](MQ);
     if (Z.vendor === "zod") {
-      let { z: $ } = await Promise.resolve().then(() => (init_v4(), v4_exports));
-      return $.toJSONSchema(X, { io: Y });
+      let { z: $2 } = await Promise.resolve().then(() => (init_v4(), v4_exports));
+      return $2.toJSONSchema(X, { io: Y });
     }
     throw Error(`Schema (vendor: ${Z.vendor}) does not implement Standard JSON Schema (~standard.jsonSchema). Use a library that does (zod v4, ArkType, Valibot) or wrap your schema accordingly.`);
   }
   async function b(X, Y, Z = "") {
-    let $ = await X["~standard"].validate(Y);
-    if ($.issues) {
-      let D = $.issues.map((J) => {
+    let $2 = await X["~standard"].validate(Y);
+    if ($2.issues) {
+      let D = $2.issues.map((J) => {
         let K = J.path?.map((G) => typeof G === "object" ? G.key : G).join(".");
         return K ? `${K}: ${J.message}` : J.message;
       }).join("; ");
       throw Error(Z + D);
     }
-    return $.value;
+    return $2.value;
   }
   function kQ(X) {
     let Y = document.documentElement;
     Y.setAttribute("data-theme", X), Y.style.colorScheme = X;
   }
   function bQ(X, Y = document.documentElement) {
-    for (let [Z, $] of Object.entries(X)) if ($ !== void 0) Y.style.setProperty(Z, $);
+    for (let [Z, $2] of Object.entries(X)) if ($2 !== void 0) Y.style.setProperty(Z, $2);
   }
   var i = class _i extends _ {
     _appInfo;
@@ -14826,8 +15286,8 @@ container holding the app. Specify either width or maxWidth, and either height o
       this._capabilities = Y;
       this.options = Z;
       if (!Z.allowUnsafeEval) external_exports.config({ jitless: true });
-      this.setRequestHandler(PingRequestSchema, ($) => {
-        return console.log("Received ping:", $.params), {};
+      this.setRequestHandler(PingRequestSchema, ($2) => {
+        return console.log("Received ping:", $2.params), {};
       }), this.setEventHandler("hostcontextchanged", void 0);
     }
     registerCapabilities(X) {
@@ -14836,8 +15296,8 @@ container holding the app. Specify either width or maxWidth, and either height o
     }
     registerTool(X, Y, Z) {
       if (this._registeredTools[X]) throw Error(`Tool ${X} is already registered`);
-      let $ = this, D = () => {
-        if ($._initializedSent && $._capabilities.tools?.listChanged) $.sendToolListChanged();
+      let $2 = this, D = () => {
+        if ($2._initializedSent && $2._capabilities.tools?.listChanged) $2.sendToolListChanged();
       }, J = Y.inputSchema !== void 0, K = { title: Y.title, description: Y.description, inputSchema: Y.inputSchema, outputSchema: Y.outputSchema, annotations: Y.annotations, _meta: Y._meta, enabled: true, enable() {
         this.enabled = true, D();
       }, disable() {
@@ -14845,8 +15305,8 @@ container holding the app. Specify either width or maxWidth, and either height o
       }, update(G) {
         Object.assign(this, G), D();
       }, remove() {
-        if ($._registeredTools[X] !== K) return;
-        delete $._registeredTools[X], D();
+        if ($2._registeredTools[X] !== K) return;
+        delete $2._registeredTools[X], D();
       }, handler: async (G, N) => {
         if (!K.enabled) throw Error(`Tool ${X} is disabled`);
         let V;
@@ -14868,8 +15328,8 @@ container holding the app. Specify either width or maxWidth, and either height o
         if (!Z) throw Error(`Tool ${X.name} not found`);
         return Z.handler(X.arguments, Y);
       }, this.onlisttools = async (X, Y) => {
-        return { tools: await Promise.all(Object.entries(this._registeredTools).filter(([$, D]) => D.enabled).map(async ([$, D]) => {
-          let J = { name: $, title: D.title, description: D.description, inputSchema: D.inputSchema ? await k(D.inputSchema, "input") : { type: "object", properties: {} } };
+        return { tools: await Promise.all(Object.entries(this._registeredTools).filter(([$2, D]) => D.enabled).map(async ([$2, D]) => {
+          let J = { name: $2, title: D.title, description: D.description, inputSchema: D.inputSchema ? await k(D.inputSchema, "input") : { type: "object", properties: {} } };
           if (D.outputSchema) J.outputSchema = await k(D.outputSchema, "output");
           if (D.annotations) J.annotations = D.annotations;
           if (D._meta) J._meta = D._meta;
@@ -15019,7 +15479,7 @@ container holding the app. Specify either width or maxWidth, and either height o
       return this.notification({ method: "ui/notifications/size-changed", params: X });
     }
     setupSizeChangedNotifications() {
-      let X = false, Y = 0, Z = 0, $ = () => {
+      let X = false, Y = 0, Z = 0, $2 = () => {
         if (X) return;
         X = true, requestAnimationFrame(() => {
           X = false;
@@ -15031,8 +15491,8 @@ container holding the app. Specify either width or maxWidth, and either height o
           if (N !== Y || G !== Z) Y = N, Z = G, this.sendSizeChanged({ width: N, height: G });
         });
       };
-      $();
-      let D = new ResizeObserver($);
+      $2();
+      let D = new ResizeObserver($2);
       return D.observe(document.documentElement), D.observe(document.body), () => D.disconnect();
     }
     async connect(X = new j(window.parent, window.parent), Y) {
@@ -15050,138 +15510,373 @@ container holding the app. Specify either width or maxWidth, and either height o
 
   // src/picker.mjs
   var app = new i(
-    { name: "Server Ops", version: "0.1.0" },
+    { name: "Server Ops", version: "0.2.0" },
     { availableDisplayModes: ["inline"] },
     { autoResize: false }
   );
-  var element = (id) => document.getElementById(id);
-  var picker = element("picker");
-  var servers = element("servers");
-  var status = element("status");
-  var countBadge = element("count");
+  var $ = (id) => document.getElementById(id);
+  var I18N = {
+    zh: {
+      pageTitle: "SSH \u670D\u52A1\u5668",
+      pageSubtitle: "\u72EC\u7ACB\u7BA1\u7406\u670D\u52A1\u5668\u8FDE\u63A5\u4E0E\u52A0\u5BC6\u51ED\u636E\uFF0C\u4EC5\u52FE\u9009\u6388\u6743\u7684\u670D\u52A1\u5668\u5BF9 Agent \u53EF\u89C1\u3002",
+      addBtn: "+ \u6DFB\u52A0\u670D\u52A1\u5668",
+      emptyTitle: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u670D\u52A1\u5668",
+      emptyHint: "\u6DFB\u52A0\u4E00\u53F0 SSH \u670D\u52A1\u5668\u5E76\u52FE\u9009\u6388\u6743\u540E\uFF0C\u5373\u53EF\u8BA9 Agent \u6267\u884C\u8FD0\u7EF4\u547D\u4EE4\u6216\u4E0A\u4F20\u6587\u4EF6\u3002\u5BC6\u7801\u4E0E\u53E3\u4EE4\u5C06\u52A0\u5BC6\u5B58\u50A8\u5728\u7CFB\u7EDF\u94A5\u5319\u4E32\u4E2D\u3002",
+      emptyAddBtn: "+ \u6DFB\u52A0\u7B2C\u4E00\u53F0\u670D\u52A1\u5668",
+      authorizedCount: (n) => `\u5DF2\u6388\u6743 ${n} \u53F0`,
+      authPassword: "\u5BC6\u7801",
+      authPrivateKey: "\u79C1\u94A5",
+      testBtn: "\u6D4B\u8BD5",
+      testingBtn: "\u6D4B\u8BD5\u4E2D\u2026",
+      editBtn: "\u7F16\u8F91",
+      deleteBtn: "\u5220\u9664",
+      confirmDelete: (name) => `\u786E\u8BA4\u5220\u9664\u300C${name}\u300D\uFF1F\u5DF2\u4FDD\u5B58\u7684\u51ED\u636E\u4E5F\u4F1A\u4E00\u5E76\u6E05\u9664\u3002`,
+      statusOk: "\u5DF2\u8FDE\u901A",
+      statusFailed: "\u8FDE\u63A5\u5931\u8D25",
+      modalAdd: "\u6DFB\u52A0 SSH \u670D\u52A1\u5668",
+      modalEdit: "\u7F16\u8F91 SSH \u670D\u52A1\u5668",
+      lblName: "\u663E\u793A\u540D\u79F0\uFF08\u53EF\u9009\uFF09",
+      phName: "\u4F8B\u5982\uFF1A\u751F\u4EA7 Web \u670D\u52A1\u5668",
+      lblHost: "\u4E3B\u673A\u5730\u5740",
+      lblPort: "\u7AEF\u53E3",
+      lblUser: "\u7528\u6237\u540D",
+      lblAuth: "\u8BA4\u8BC1\u65B9\u5F0F",
+      lblPassword: "\u5BC6\u7801",
+      lblKeypath: "\u79C1\u94A5\u6587\u4EF6\u8DEF\u5F84",
+      lblPassphrase: "\u79C1\u94A5\u53E3\u4EE4\uFF08\u53EF\u9009\uFF09",
+      hintSavedSecret: "\u5DF2\u52A0\u5BC6\u4FDD\u5B58\uFF1B\u7559\u7A7A\u8868\u793A\u4FDD\u6301\u4E0D\u53D8",
+      cancel: "\u53D6\u6D88",
+      save: "\u4FDD\u5B58",
+      saving: "\u4FDD\u5B58\u4E2D\u2026",
+      loadFailed: "\u65E0\u6CD5\u8BFB\u53D6\u670D\u52A1\u5668\u5217\u8868\u3002",
+      saveFailed: "\u4FDD\u5B58\u5931\u8D25\u3002",
+      testSuccess: (name, info) => `\u300C${name}\u300D\u8FDE\u63A5\u6210\u529F\uFF1A${info}`,
+      testFail: (name, err) => `\u300C${name}\u300D\u8FDE\u63A5\u5931\u8D25\uFF1A${err}`,
+      keyRequired: "\u8BF7\u586B\u5199\u79C1\u94A5\u6587\u4EF6\u8DEF\u5F84\u3002",
+      passwordRequired: "\u8BF7\u586B\u5199\u767B\u5F55\u5BC6\u7801\u3002"
+    },
+    en: {
+      pageTitle: "SSH Servers",
+      pageSubtitle: "Manage SSH profiles with encrypted credentials. Only checked servers are visible to the agent.",
+      addBtn: "+ Add Server",
+      emptyTitle: "No saved servers yet",
+      emptyHint: "Add an SSH server and check it to authorize remote commands and file uploads. Secrets are stored encrypted in the OS keychain.",
+      emptyAddBtn: "+ Add Your First Server",
+      authorizedCount: (n) => `${n} authorized`,
+      authPassword: "Password",
+      authPrivateKey: "SSH Key",
+      testBtn: "Test",
+      testingBtn: "Testing\u2026",
+      editBtn: "Edit",
+      deleteBtn: "Delete",
+      confirmDelete: (name) => `Delete "${name}"? Stored credentials will also be removed.`,
+      statusOk: "Connected",
+      statusFailed: "Failed",
+      modalAdd: "Add SSH Server",
+      modalEdit: "Edit SSH Server",
+      lblName: "Display Name (optional)",
+      phName: "e.g. Production Web",
+      lblHost: "Host",
+      lblPort: "Port",
+      lblUser: "Username",
+      lblAuth: "Authentication",
+      lblPassword: "Password",
+      lblKeypath: "Private Key Path",
+      lblPassphrase: "Key Passphrase (optional)",
+      hintSavedSecret: "Encrypted secret saved; leave blank to keep unchanged",
+      cancel: "Cancel",
+      save: "Save",
+      saving: "Saving\u2026",
+      loadFailed: "Could not load saved servers.",
+      saveFailed: "Failed to save changes.",
+      testSuccess: (name, info) => `Connected to ${name}: ${info}`,
+      testFail: (name, err) => `Connection failed for ${name}: ${err}`,
+      keyRequired: "Please enter a private key path.",
+      passwordRequired: "Please enter a password."
+    }
+  };
+  var t = I18N.en;
   var profiles = [];
   var selected = /* @__PURE__ */ new Set();
-  var saving = false;
-  var refreshing = null;
-  var chinese = {
-    title: "\u6388\u6743 SSH \u670D\u52A1\u5668",
-    loading: "\u6B63\u5728\u8BFB\u53D6 ~/.ssh/config\u2026",
-    empty: "\u672A\u53D1\u73B0 SSH \u4E3B\u673A\u914D\u7F6E",
-    emptyHint: "\u8BF7\u5728 ~/.ssh/config \u4E2D\u6DFB\u52A0 Host \u522B\u540D\u540E\u70B9\u51FB\u5237\u65B0",
-    refresh: "\u5237\u65B0",
-    loadFailed: "\u65E0\u6CD5\u8BFB\u53D6\u670D\u52A1\u5668\u5217\u8868\u3002",
-    saveFailed: "\u65E0\u6CD5\u4FDD\u5B58\u670D\u52A1\u5668\u6388\u6743\u3002",
-    selectedCount: (n) => `\u5DF2\u6388\u6743 ${n} \u53F0`
-  };
-  var english = {
-    title: "Authorized SSH Servers",
-    loading: "Loading ~/.ssh/config\u2026",
-    empty: "No SSH hosts found",
-    emptyHint: "Add Host aliases in ~/.ssh/config and click Refresh",
-    refresh: "Refresh",
-    loadFailed: "Could not load SSH servers.",
-    saveFailed: "Could not save server selection.",
-    selectedCount: (n) => `${n} selected`
-  };
-  var text = english;
-  async function call(name, args = {}) {
+  var busy = false;
+  var testingId = null;
+  var editingProfile = null;
+  var authType = "password";
+  async function callTool(name, args = {}) {
     const reply = await app.callServerTool({ name, arguments: args });
     if (reply.isError) {
       throw new Error(reply.content?.find((item) => item.type === "text")?.text || "Tool error");
     }
     return reply.structuredContent;
   }
-  function showError(message = "") {
-    status.textContent = message;
-    status.hidden = !message;
+  function showBanner(message = "", kind = "") {
+    const el = $("banner");
+    el.textContent = message;
+    el.className = `banner${kind ? ` ${kind}` : ""}`;
+    el.hidden = !message;
   }
   function applyAppearance() {
-    const context = app.getHostContext();
-    if (context?.theme) kQ(context.theme);
-    if (context?.styles?.variables) bQ(context.styles.variables);
+    const ctx = app.getHostContext();
+    if (ctx?.theme) kQ(ctx.theme);
+    if (ctx?.styles?.variables) bQ(ctx.styles.variables);
+    document.body.classList.toggle("compact", Boolean(ctx?.containerDimensions?.maxHeight));
   }
   function syncModelContext() {
     if (!app.getHostCapabilities()?.updateModelContext) return;
-    const ids = [...selected];
-    const content = ids.length > 0 ? [{ type: "text", text: `Authorized SSH servers for server-ops: ${ids.join(", ")}` }] : [];
+    const names = profiles.filter((p2) => selected.has(p2.id)).map((p2) => `${p2.name} (${p2.id})`);
+    const content = names.length > 0 ? [{ type: "text", text: `Authorized SSH servers for server-ops: ${names.join(", ")}` }] : [];
     void app.updateModelContext({ content }).catch(() => {
     });
   }
-  function render() {
-    element("empty").hidden = profiles.length > 0;
-    countBadge.textContent = text.selectedCount(selected.size);
-    servers.replaceChildren();
+  function applyStaticLabels() {
+    $("page-title").textContent = t.pageTitle;
+    $("page-subtitle").textContent = t.pageSubtitle;
+    $("add-btn").textContent = t.addBtn;
+    $("empty-title").textContent = t.emptyTitle;
+    $("empty-hint").textContent = t.emptyHint;
+    $("empty-add-btn").textContent = t.emptyAddBtn;
+    $("lbl-name").textContent = t.lblName;
+    $("f-name").placeholder = t.phName;
+    $("lbl-host").textContent = t.lblHost;
+    $("lbl-port").textContent = t.lblPort;
+    $("lbl-user").textContent = t.lblUser;
+    $("lbl-auth").textContent = t.lblAuth;
+    $("seg-password").textContent = t.authPassword;
+    $("seg-key").textContent = t.authPrivateKey;
+    $("lbl-password").textContent = t.lblPassword;
+    $("lbl-keypath").textContent = t.lblKeypath;
+    $("lbl-passphrase").textContent = t.lblPassphrase;
+    $("hint-password").textContent = t.hintSavedSecret;
+    $("hint-passphrase").textContent = t.hintSavedSecret;
+    $("cancel-btn").textContent = t.cancel;
+    $("save-btn").textContent = t.save;
+  }
+  function renderList() {
+    const countEl = $("count-pill");
+    countEl.textContent = t.authorizedCount(selected.size);
+    countEl.classList.toggle("active", selected.size > 0);
+    $("empty-state").hidden = profiles.length > 0;
+    const container = $("server-list");
+    container.replaceChildren();
     for (const profile of profiles) {
-      const label = document.createElement("label");
-      label.className = "server";
+      const isSelected = selected.has(profile.id);
+      const card = document.createElement("div");
+      card.className = `card${isSelected ? " selected" : ""}`;
+      const main = document.createElement("label");
+      main.className = "card-main";
+      const checkWrap = document.createElement("span");
+      checkWrap.className = "check-wrap";
       const box = document.createElement("input");
       box.type = "checkbox";
-      box.checked = selected.has(profile.id);
-      box.onchange = () => void toggle(profile.id, box);
-      const mark = document.createElement("span");
-      mark.className = "mark";
-      mark.setAttribute("aria-hidden", "true");
-      const info = document.createElement("span");
-      info.className = "server-info";
-      const name = document.createElement("span");
-      name.className = "server-name";
-      name.textContent = profile.name;
-      name.title = profile.name;
-      info.append(name);
-      if (profile.subtitle) {
-        const sub = document.createElement("span");
-        sub.className = "server-sub";
-        sub.textContent = profile.subtitle;
-        sub.title = profile.subtitle;
-        info.append(sub);
+      box.checked = isSelected;
+      box.disabled = busy;
+      box.onchange = () => void toggleAuthorize(profile.id, box.checked);
+      const checkVisual = document.createElement("span");
+      checkVisual.className = "check-box";
+      checkVisual.innerHTML = isSelected ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : "";
+      checkWrap.append(box, checkVisual);
+      const info = document.createElement("div");
+      info.className = "info";
+      const nameLine = document.createElement("div");
+      nameLine.className = "name-line";
+      const nameEl = document.createElement("span");
+      nameEl.className = "name";
+      nameEl.textContent = profile.name;
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = profile.authType === "privateKey" ? t.authPrivateKey : t.authPassword;
+      nameLine.append(nameEl, tag);
+      const metaLine = document.createElement("div");
+      metaLine.className = "meta-line";
+      const sub = document.createElement("span");
+      sub.className = "mono";
+      sub.textContent = profile.subtitle;
+      metaLine.append(sub);
+      if (profile.lastConnectError) {
+        const st = document.createElement("span");
+        st.className = "status-dot err";
+        st.textContent = t.statusFailed;
+        st.title = profile.lastConnectError;
+        metaLine.append(st);
+      } else if (profile.lastConnectedAt) {
+        const st = document.createElement("span");
+        st.className = "status-dot ok";
+        st.textContent = t.statusOk;
+        metaLine.append(st);
       }
-      label.append(box, mark, info);
-      servers.append(label);
+      info.append(nameLine, metaLine);
+      main.append(checkWrap, info);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const testBtn = document.createElement("button");
+      testBtn.type = "button";
+      testBtn.className = "btn btn-ghost";
+      testBtn.textContent = testingId === profile.id ? t.testingBtn : t.testBtn;
+      testBtn.disabled = busy || testingId !== null;
+      testBtn.onclick = () => void runTest(profile);
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn btn-ghost";
+      editBtn.textContent = t.editBtn;
+      editBtn.disabled = busy;
+      editBtn.onclick = () => openModal(profile);
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn btn-ghost danger";
+      delBtn.textContent = t.deleteBtn;
+      delBtn.disabled = busy;
+      delBtn.onclick = () => void removeProfile(profile);
+      actions.append(testBtn, editBtn, delBtn);
+      card.append(main, actions);
+      container.append(card);
     }
+  }
+  function setAuthType(next) {
+    authType = next;
+    $("seg-password").classList.toggle("active", next === "password");
+    $("seg-key").classList.toggle("active", next === "privateKey");
+    $("group-password").hidden = next !== "password";
+    $("group-key").hidden = next !== "privateKey";
+    $("group-passphrase").hidden = next !== "privateKey";
+  }
+  function openModal(profile = null) {
+    editingProfile = profile;
+    $("modal-title").textContent = profile ? t.modalEdit : t.modalAdd;
+    $("f-name").value = profile?.displayName ?? "";
+    $("f-host").value = profile?.host ?? "";
+    $("f-port").value = String(profile?.port ?? 22);
+    $("f-user").value = profile?.username ?? "";
+    $("f-password").value = "";
+    $("f-keypath").value = profile?.privateKeyPath ?? "";
+    $("f-passphrase").value = "";
+    $("hint-password").hidden = !(profile && profile.hasPassword);
+    $("hint-passphrase").hidden = !(profile && profile.hasPassphrase);
+    $("form-error").hidden = true;
+    setAuthType(profile?.authType ?? "password");
+    $("modal-backdrop").hidden = false;
+    $("f-host").focus();
+  }
+  function closeModal() {
+    $("modal-backdrop").hidden = true;
+    editingProfile = null;
   }
   async function refresh({ quiet = false } = {}) {
-    if (saving) return;
-    if (refreshing) return refreshing;
-    refreshing = (async () => {
-      try {
-        const result = await call("picker_read");
-        profiles = result?.profiles ?? [];
-        selected = new Set(result?.serverIds ?? []);
-        render();
-        if (!quiet) showError();
-      } catch {
-        if (!quiet) showError(text.loadFailed);
-      } finally {
-        refreshing = null;
-      }
-    })();
-    return refreshing;
-  }
-  async function toggle(id, box) {
-    if (saving) return;
-    saving = true;
-    showError();
-    const next = new Set(selected);
-    if (box.checked) next.add(id);
-    else next.delete(id);
-    const inputs = servers.querySelectorAll("input");
-    for (const input of inputs) input.disabled = true;
-    let saveFailed = false;
     try {
-      const result = await call("picker_save", { serverIds: [...next] });
-      selected = new Set(result?.serverIds ?? []);
-      countBadge.textContent = text.selectedCount(selected.size);
-      syncModelContext();
-    } catch {
-      saveFailed = true;
-      box.checked = selected.has(id);
-      showError(text.saveFailed);
-    } finally {
-      saving = false;
-      for (const input of inputs) input.disabled = false;
-      box.focus();
+      const res = await callTool("picker_read");
+      profiles = res?.profiles ?? [];
+      selected = new Set(res?.serverIds ?? []);
+      renderList();
+      if (!quiet) showBanner();
+    } catch (err) {
+      if (!quiet) showBanner(err instanceof Error ? err.message : t.loadFailed, "error");
     }
-    if (saveFailed) void refresh({ quiet: true });
+  }
+  async function toggleAuthorize(id, checked) {
+    if (busy) return;
+    busy = true;
+    const next = new Set(selected);
+    if (checked) next.add(id);
+    else next.delete(id);
+    try {
+      const res = await callTool("picker_save", { serverIds: [...next] });
+      selected = new Set(res?.serverIds ?? []);
+      syncModelContext();
+      showBanner();
+    } catch (err) {
+      showBanner(err instanceof Error ? err.message : t.saveFailed, "error");
+    } finally {
+      busy = false;
+      renderList();
+    }
+  }
+  async function runTest(profile) {
+    if (testingId) return;
+    testingId = profile.id;
+    renderList();
+    showBanner();
+    try {
+      const res = await callTool("profile_test", { profileId: profile.id });
+      if (res?.profiles) profiles = res.profiles;
+      if (res?.serverIds) selected = new Set(res.serverIds);
+      if (res?.ok) {
+        showBanner(t.testSuccess(profile.name, res.info || "OK"), "success");
+      } else {
+        showBanner(t.testFail(profile.name, res?.error || "Unknown error"), "error");
+      }
+    } catch (err) {
+      showBanner(t.testFail(profile.name, err instanceof Error ? err.message : String(err)), "error");
+    } finally {
+      testingId = null;
+      renderList();
+    }
+  }
+  async function removeProfile(profile) {
+    if (busy) return;
+    if (!window.confirm(t.confirmDelete(profile.name))) return;
+    busy = true;
+    renderList();
+    try {
+      const res = await callTool("profile_delete", { profileId: profile.id });
+      profiles = res?.profiles ?? [];
+      selected = new Set(res?.serverIds ?? []);
+      syncModelContext();
+      showBanner();
+    } catch (err) {
+      showBanner(err instanceof Error ? err.message : t.saveFailed, "error");
+    } finally {
+      busy = false;
+      renderList();
+    }
+  }
+  async function submitForm(event) {
+    event.preventDefault();
+    const errEl = $("form-error");
+    errEl.hidden = true;
+    const host = $("f-host").value.trim();
+    const port = Number.parseInt($("f-port").value, 10) || 22;
+    const username = $("f-user").value.trim();
+    const displayName = $("f-name").value.trim();
+    const password = $("f-password").value;
+    const privateKeyPath = $("f-keypath").value.trim();
+    const passphrase = $("f-passphrase").value;
+    if (authType === "privateKey" && !privateKeyPath) {
+      errEl.textContent = t.keyRequired;
+      errEl.hidden = false;
+      return;
+    }
+    if (authType === "password" && !password && !editingProfile?.hasPassword) {
+      errEl.textContent = t.passwordRequired;
+      errEl.hidden = false;
+      return;
+    }
+    const saveBtn = $("save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = t.saving;
+    try {
+      const payload = {
+        ...editingProfile ? { profileId: editingProfile.id } : {},
+        ...displayName ? { displayName } : {},
+        host,
+        port,
+        username,
+        authType,
+        ...authType === "password" && password ? { password } : {},
+        ...authType === "privateKey" ? { privateKeyPath } : {},
+        ...authType === "privateKey" && passphrase ? { passphrase } : {}
+      };
+      const res = await callTool("profile_save", payload);
+      profiles = res?.profiles ?? [];
+      selected = new Set(res?.serverIds ?? []);
+      closeModal();
+      renderList();
+      showBanner();
+    } catch (err) {
+      errEl.textContent = err instanceof Error ? err.message : t.saveFailed;
+      errEl.hidden = false;
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = t.save;
+    }
   }
   async function start() {
     app.onhostcontextchanged = applyAppearance;
@@ -15189,38 +15884,32 @@ container holding the app. Specify either width or maxWidth, and either height o
       if (result?.structuredContent?.profiles) {
         profiles = result.structuredContent.profiles;
         selected = new Set(result.structuredContent.serverIds ?? []);
-        render();
-        element("loading").hidden = true;
+        renderList();
       }
     };
+    $("add-btn").onclick = () => openModal(null);
+    $("empty-add-btn").onclick = () => openModal(null);
+    $("modal-close").onclick = closeModal;
+    $("cancel-btn").onclick = closeModal;
+    $("modal-backdrop").onclick = (e) => {
+      if (e.target === $("modal-backdrop")) closeModal();
+    };
+    $("seg-password").onclick = () => setAuthType("password");
+    $("seg-key").onclick = () => setAuthType("privateKey");
+    $("profile-form").onsubmit = (e) => void submitForm(e);
     await app.connect();
-    text = app.getHostContext()?.locale?.startsWith("zh") ? chinese : english;
-    document.documentElement.lang = text === chinese ? "zh-CN" : "en";
+    t = app.getHostContext()?.locale?.startsWith("zh") ? I18N.zh : I18N.en;
+    document.documentElement.lang = t === I18N.zh ? "zh-CN" : "en";
     applyAppearance();
-    element("title").textContent = text.title;
-    element("refresh-btn").textContent = text.refresh;
-    element("refresh-btn").onclick = () => void refresh();
-    element("empty-title").textContent = text.empty;
-    element("empty-hint").textContent = text.emptyHint;
+    applyStaticLabels();
     new ResizeObserver(() => {
-      const height = Math.ceil(picker.getBoundingClientRect().height);
+      if (!document.body.classList.contains("compact")) return;
+      const height = Math.ceil($("app-root").getBoundingClientRect().height);
       if (height > 0) void app.sendSizeChanged({ height });
-    }).observe(picker);
-    const loading = element("loading");
-    loading.textContent = text.loading;
-    try {
-      await refresh();
-    } finally {
-      loading.hidden = true;
-    }
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") void refresh({ quiet: true });
-    });
-    window.addEventListener("focus", () => {
-      void refresh({ quiet: true });
-    });
+    }).observe($("app-root"));
+    await refresh();
   }
-  void start().catch(() => showError(text.loadFailed));
+  void start().catch(() => showBanner(t.loadFailed, "error"));
 })();
 </script>
 </body>

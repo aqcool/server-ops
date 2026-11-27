@@ -11,16 +11,16 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { execRemote, uploadRemote } from "./ssh-backend.mjs";
-import { loadSshProfiles } from "./ssh-config.mjs";
-import { createBindingsStore } from "./store.mjs";
+import { createCredentialStore } from "./credential-store.mjs";
+import { createProfileStore } from "./profile-store.mjs";
+import { execRemote, testConnection, uploadRemote } from "./ssh-backend.mjs";
 
 const PICKER_URI = "ui://server-ops/picker.html";
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const resource = {
   uri: PICKER_URI,
-  name: "Server picker",
+  name: "Server Ops",
   mimeType: "text/html;profile=mcp-app",
   _meta: {
     ui: { prefersBorder: false },
@@ -28,6 +28,8 @@ const resource = {
 };
 
 const stringSchema = { type: "string" };
+const numberSchema = { type: "number" };
+const booleanSchema = { type: "boolean" };
 
 function defineTool(name, description, properties = {}, required = [], options = {}) {
   return {
@@ -42,19 +44,25 @@ const appOnly = { _meta: { ui: { visibility: ["app"] } } };
 const readOnly = { annotations: { readOnlyHint: true } };
 
 const tools = [
-  defineTool("open_server_picker", "Show the interactive SSH server picker to authorize hosts.", {}, [], {
-    ...readOnly,
-    _meta: {
-      ui: { resourceUri: PICKER_URI },
-      "com.google.antigravity/ui": {
-        entrypoints: [
-          { type: "aux_pane", title: "Server Ops" },
-          { type: "global", title: "Server Ops" },
-        ],
+  defineTool(
+    "open_server_picker",
+    "Show the SSH server manager and picker to add, test, or authorize servers.",
+    {},
+    [],
+    {
+      ...readOnly,
+      _meta: {
+        ui: { resourceUri: PICKER_URI },
+        "com.google.antigravity/ui": {
+          entrypoints: [
+            { type: "aux_pane", title: "Server Ops" },
+            { type: "global", title: "Server Ops" },
+          ],
+        },
       },
     },
-  }),
-  defineTool("picker_read", "Read SSH host profiles from ~/.ssh/config and current authorization.", {}, [], {
+  ),
+  defineTool("picker_read", "Read saved SSH server profiles and current authorization.", {}, [], {
     ...appOnly,
     ...readOnly,
   }),
@@ -65,6 +73,42 @@ const tools = [
       serverIds: { type: "array", items: stringSchema },
     },
     ["serverIds"],
+    appOnly,
+  ),
+  defineTool(
+    "profile_save",
+    "Create or update a saved SSH server profile.",
+    {
+      profileId: stringSchema,
+      displayName: stringSchema,
+      host: stringSchema,
+      port: numberSchema,
+      username: stringSchema,
+      authType: { type: "string", enum: ["password", "privateKey"] },
+      password: stringSchema,
+      privateKeyPath: stringSchema,
+      passphrase: stringSchema,
+      clearPassphrase: booleanSchema,
+    },
+    ["host", "username", "authType"],
+    appOnly,
+  ),
+  defineTool(
+    "profile_delete",
+    "Delete a saved SSH server profile and its stored credentials.",
+    {
+      profileId: stringSchema,
+    },
+    ["profileId"],
+    appOnly,
+  ),
+  defineTool(
+    "profile_test",
+    "Test SSH connectivity for a saved profile.",
+    {
+      profileId: stringSchema,
+    },
+    ["profileId"],
     appOnly,
   ),
   defineTool("server_list", "List the SSH servers currently authorized by the user.", {}, [], readOnly),
@@ -93,6 +137,19 @@ const tools = [
 ];
 
 const pickerSaveSchema = z.object({ serverIds: z.array(z.string().min(1)) });
+const profileSaveSchema = z.object({
+  profileId: z.string().min(1).optional(),
+  displayName: z.string().optional(),
+  host: z.string().trim().min(1),
+  port: z.number().int().min(1).max(65535).optional(),
+  username: z.string().trim().min(1),
+  authType: z.enum(["password", "privateKey"]),
+  password: z.string().optional(),
+  privateKeyPath: z.string().optional(),
+  passphrase: z.string().optional(),
+  clearPassphrase: z.boolean().optional(),
+});
+const profileIdSchema = z.object({ profileId: z.string().min(1) });
 const remoteRunSchema = z.object({
   serverId: z.string().min(1),
   command: z.string().trim().min(1).max(16_384),
@@ -107,12 +164,10 @@ const serverCopySchema = z.object({
 function parseCliArgs(argv) {
   const options = {
     dataDir: process.env.SERVER_OPS_DATA_DIR || join(homedir(), ".config", "server-ops"),
-    sshConfigPath: process.env.SERVER_OPS_SSH_CONFIG || join(homedir(), ".ssh", "config"),
     workspaceDir: process.env.SERVER_OPS_WORKSPACE || "",
   };
   for (const arg of argv) {
     if (arg.startsWith("--data-dir=")) options.dataDir = arg.slice("--data-dir=".length);
-    else if (arg.startsWith("--ssh-config=")) options.sshConfigPath = arg.slice("--ssh-config=".length);
     else if (arg.startsWith("--workspace=")) options.workspaceDir = arg.slice("--workspace=".length);
   }
   return options;
@@ -144,7 +199,8 @@ async function resolveUploadSource(sourceInput, workspaceDir) {
 
 export async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
-  const store = createBindingsStore(join(options.dataDir, "bindings.json"));
+  const credentialStore = createCredentialStore(options.dataDir);
+  const profileStore = createProfileStore(options.dataDir, credentialStore);
 
   const server = new Server(
     { name: "server-ops", version: VERSION },
@@ -170,97 +226,143 @@ export async function main(argv = process.argv.slice(2)) {
       }
 
       if (params.name === "open_server_picker") {
-        const profiles = await loadSshProfiles(options.sshConfigPath);
-        const savedIds = await store.readIds();
-        const validIds = savedIds.filter((id) => profiles.some((p) => p.id === id));
+        const snap = await profileStore.snapshot();
+        const selectedNames = snap.profiles
+          .filter((p) => snap.serverIds.includes(p.id))
+          .map((p) => p.name);
         return {
           content: [
             {
               type: "text",
               text:
-                validIds.length > 0
-                  ? `Server picker opened. Currently authorized: ${validIds.join(", ")}.`
-                  : "Server picker opened. Select one or more SSH hosts to authorize them.",
+                selectedNames.length > 0
+                  ? `Server Ops opened. Authorized servers: ${selectedNames.join(", ")}.`
+                  : "Server Ops opened. Add or select SSH servers to authorize them.",
             },
           ],
-          structuredContent: { profiles, serverIds: validIds },
+          structuredContent: snap,
         };
       }
 
-      const profiles = await loadSshProfiles(options.sshConfigPath);
-      const savedIds = await store.readIds();
-      const selectedProfiles = profiles.filter((p) => savedIds.includes(p.id));
-
       if (params.name === "picker_read") {
-        const payload = {
-          profiles,
-          serverIds: selectedProfiles.map((p) => p.id),
-        };
+        const snap = await profileStore.snapshot();
         return {
-          content: [{ type: "text", text: "Server selection" }],
-          structuredContent: payload,
+          content: [{ type: "text", text: "Server profiles loaded." }],
+          structuredContent: snap,
         };
       }
 
       if (params.name === "picker_save") {
         const { serverIds } = pickerSaveSchema.parse(params.arguments ?? {});
-        const validSet = new Set(profiles.map((p) => p.id));
-        for (const id of serverIds) {
-          if (!validSet.has(id)) {
-            throw new Error(`SSH host "${id}" was not found in SSH config.`);
-          }
-        }
-        const saved = await store.writeIds(serverIds);
+        const saved = await profileStore.setSelectedIds(serverIds);
         return {
-          content: [{ type: "text", text: "Server selection saved" }],
+          content: [{ type: "text", text: "Server authorization saved." }],
           structuredContent: { serverIds: saved },
         };
       }
 
-      if (params.name === "server_list") {
+      if (params.name === "profile_save") {
+        const input = profileSaveSchema.parse(params.arguments ?? {});
+        const savedProfile = await profileStore.saveProfile(input);
+        const snap = await profileStore.snapshot();
         return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({ servers: selectedProfiles }),
-            },
-          ],
+          content: [{ type: "text", text: `Saved server ${savedProfile.name}.` }],
+          structuredContent: { profile: savedProfile, ...snap },
+        };
+      }
+
+      if (params.name === "profile_delete") {
+        const { profileId } = profileIdSchema.parse(params.arguments ?? {});
+        await profileStore.deleteProfile(profileId);
+        const snap = await profileStore.snapshot();
+        return {
+          content: [{ type: "text", text: "Deleted server profile." }],
+          structuredContent: snap,
+        };
+      }
+
+      if (params.name === "profile_test") {
+        const { profileId } = profileIdSchema.parse(params.arguments ?? {});
+        const conn = await profileStore.getProfileWithSecrets(profileId);
+        if (!conn) throw new Error("Server profile not found.");
+        try {
+          const result = await testConnection(conn, { signal: extra.signal });
+          await profileStore.recordConnectResult(profileId, { ok: result.ok });
+          const snap = await profileStore.snapshot();
+          return {
+            content: [{ type: "text", text: result.info }],
+            structuredContent: { ok: result.ok, info: result.info, ...snap },
+          };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          await profileStore.recordConnectResult(profileId, { ok: false, error: message });
+          const snap = await profileStore.snapshot();
+          return {
+            content: [{ type: "text", text: message }],
+            structuredContent: { ok: false, error: message, ...snap },
+          };
+        }
+      }
+
+      if (params.name === "server_list") {
+        const snap = await profileStore.snapshot();
+        const selected = snap.profiles
+          .filter((p) => snap.serverIds.includes(p.id))
+          .map((p) => ({ id: p.id, name: p.name, subtitle: p.subtitle }));
+        return {
+          content: [{ type: "text", text: JSON.stringify({ servers: selected }) }],
         };
       }
 
       if (params.name === "remote_run") {
         const { serverId, command } = remoteRunSchema.parse(params.arguments ?? {});
-        const profile = selectedProfiles.find((p) => p.id === serverId);
-        if (!profile) {
+        const snap = await profileStore.snapshot();
+        if (!snap.serverIds.includes(serverId)) {
           throw new Error(
-            `SSH host "${serverId}" is not authorized. Open the server picker and select it first.`,
+            "This SSH server is not authorized. Open Server Ops and authorize it first.",
           );
         }
-        const result = await execRemote(profile.id, command, {
-          signal: extra.signal,
-          sshConfigPath: options.sshConfigPath,
-        });
+        const conn = await profileStore.getProfileWithSecrets(serverId);
+        if (!conn) throw new Error("Server profile no longer exists.");
+        const result = await execRemote(conn, command, { signal: extra.signal });
         return {
-          content: [{ type: "text", text: JSON.stringify({ server: profile, ...result }) }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                server: { id: conn.publicProfile.id, name: conn.publicProfile.name },
+                ...result,
+              }),
+            },
+          ],
         };
       }
 
       if (params.name === "server_copy") {
         const args = serverCopySchema.parse(params.arguments ?? {});
-        const profile = selectedProfiles.find((p) => p.id === args.serverId);
-        if (!profile) {
+        const snap = await profileStore.snapshot();
+        if (!snap.serverIds.includes(args.serverId)) {
           throw new Error(
-            `SSH host "${args.serverId}" is not authorized. Open the server picker and select it first.`,
+            "This SSH server is not authorized. Open Server Ops and authorize it first.",
           );
         }
+        const conn = await profileStore.getProfileWithSecrets(args.serverId);
+        if (!conn) throw new Error("Server profile no longer exists.");
         const localPath = await resolveUploadSource(args.source, options.workspaceDir);
-        const result = await uploadRemote(profile.id, localPath, args.destination, {
+        const result = await uploadRemote(conn, localPath, args.destination, {
           overwrite: args.overwrite,
           signal: extra.signal,
-          sshConfigPath: options.sshConfigPath,
         });
         return {
-          content: [{ type: "text", text: JSON.stringify({ server: profile, ...result }) }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                server: { id: conn.publicProfile.id, name: conn.publicProfile.name },
+                ...result,
+              }),
+            },
+          ],
         };
       }
 

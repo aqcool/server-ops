@@ -1,15 +1,15 @@
 {
   "name": "server-ops",
   "displayName": "Server Ops",
-  "version": "0.1.0",
-  "description": "Select saved SSH hosts with an interactive MCP App picker, run remote shell commands, and atomically upload files.",
+  "version": "0.2.0",
+  "description": "Manage SSH servers with ZCode-style encrypted credential storage, authorize hosts via MCP App UI, execute remote commands, and atomically upload files.",
   "repository": {
     "type": "git",
     "url": "https://github.com/aqcool/server-ops"
   },
   "suggestedPrompts": [
-    "Open the server picker so I can choose which SSH hosts to authorize",
-    "Check disk usage and service health on my selected server",
-    "Upload the local config file to /tmp/app.conf on the selected server"
+    "Open Server Ops to add or authorize SSH servers",
+    "Check disk usage and service health on my authorized server",
+    "Upload a local config file to /tmp/app.conf on the selected server"
   ]
 }

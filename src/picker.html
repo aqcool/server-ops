@@ -6,143 +6,603 @@
 <style>
   :root {
     color-scheme: light dark;
-    color: var(--color-text-primary, CanvasText);
-    font: var(--font-text-md-size, .875rem)/1.45 var(--font-sans, system-ui, sans-serif);
+    --bg: var(--color-background-primary, #ffffff);
+    --bg-subtle: var(--color-background-secondary, #f7f7f8);
+    --bg-hover: var(--color-background-tertiary, #efefef);
+    --text: var(--color-text-primary, #18181b);
+    --text-muted: var(--color-text-secondary, #71717a);
+    --border: var(--color-border-primary, rgba(0, 0, 0, 0.09));
+    --border-strong: var(--color-border-secondary, rgba(0, 0, 0, 0.16));
+    --accent: var(--color-ring-primary, #18181b);
+    --accent-fg: var(--color-text-inverse, #ffffff);
+    --danger: var(--color-text-danger, #dc2626);
+    --success: var(--color-text-success, #16a34a);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    font: 14px/1.5 var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    color: var(--text);
+    background: var(--bg);
   }
-  :root[data-theme="light"] { color-scheme: light; }
-  :root[data-theme="dark"] { color-scheme: dark; }
-  body { margin: 0; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: var(--color-background-primary, #111113);
+    --bg-subtle: var(--color-background-secondary, #1a1a1e);
+    --bg-hover: var(--color-background-tertiary, #242429);
+    --text: var(--color-text-primary, #f4f4f5);
+    --text-muted: var(--color-text-secondary, #a1a1aa);
+    --border: var(--color-border-primary, rgba(255, 255, 255, 0.1));
+    --border-strong: var(--color-border-secondary, rgba(255, 255, 255, 0.18));
+    --accent: var(--color-ring-primary, #f4f4f5);
+    --accent-fg: var(--color-text-inverse, #111113);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); }
   [hidden] { display: none !important; }
-  .picker {
-    box-sizing: border-box;
-    max-inline-size: 28rem;
-    margin: 0;
-    padding: 8px;
-    border: 1px solid var(--color-border-primary, transparent);
-    border-radius: var(--border-radius-lg, 8px);
-    background: var(--color-background-primary, Canvas);
+
+  .page {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 28px 24px 36px;
   }
-  .header {
+
+  body.compact .page {
+    max-width: 100%;
+    padding: 12px 14px 14px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  body.compact .topbar {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .heading {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  body.compact h1 {
+    font-size: 14px;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  body.compact .subtitle {
+    display: none;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .pill.active {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  }
+
+  .btn:hover:not(:disabled) { background: var(--bg-subtle); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: transparent;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent);
+    opacity: 0.88;
+  }
+
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-muted);
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+  .btn-ghost.danger:hover:not(:disabled) {
+    color: var(--danger);
+  }
+
+  body.compact .btn-add {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .banner {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+  .banner.error {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  }
+  .banner.success {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 2px 6px 8px;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    transition: border-color 120ms ease, background 120ms ease;
   }
-  .header-left {
+
+  .card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .card.selected {
+    background: var(--bg-subtle);
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  }
+
+  body.compact .card {
+    padding: 9px 11px;
+  }
+
+  .card-main {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-inline-size: 0;
-  }
-  #title {
-    margin: 0;
-    font-size: .875rem;
-    font-weight: 600;
-  }
-  #count {
-    color: var(--color-text-secondary, GrayText);
-    font-size: .75rem;
-  }
-  #refresh-btn {
-    border: 1px solid var(--color-border-primary, ButtonBorder);
-    border-radius: 6px;
-    padding: 2px 8px;
-    background: var(--color-background-secondary, ButtonFace);
-    color: var(--color-text-primary, ButtonText);
-    font: inherit;
-    font-size: .75rem;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
     cursor: pointer;
   }
-  #refresh-btn:hover {
-    opacity: .85;
-  }
-  #servers {
-    display: grid;
-    gap: 2px;
-    max-block-size: 16rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .server {
+
+  .check-wrap {
     position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-inline-size: 0;
-    min-block-size: 32px;
-    padding: 4px 8px;
-    border-radius: var(--border-radius-md, 6px);
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  .check-wrap input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
     cursor: pointer;
   }
-  .server:hover,
-  .server:has(:focus-visible),
-  .server:has(input:checked) {
-    background: var(--color-background-secondary, ButtonFace);
+
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-fg);
+    transition: all 120ms ease;
   }
-  .server input { position: absolute; inset-inline-start: 8px; opacity: 0; }
-  .mark { display: inline-grid; flex: 0 0 14px; block-size: 16px; place-items: center; }
-  .server input:checked + .mark::before { content: "✓"; font-weight: 600; }
-  .server input:focus-visible + .mark { outline: 2px solid var(--color-ring-primary, Highlight); }
-  .server-info {
+
+  .check-wrap input:checked + .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check-wrap input:focus-visible + .check-box {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .info {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    min-inline-size: 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
     flex: 1;
   }
-  .server-name {
+
+  .name-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .name {
     font-weight: 500;
+    font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .server-sub {
-    color: var(--color-text-secondary, GrayText);
-    font-size: .75rem;
+
+  .tag {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .meta-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .server:has(input:disabled) { opacity: .6; cursor: default; }
-  #loading, #status {
-    margin: 0;
-    padding: 5px 7px;
-    color: var(--color-text-secondary, GrayText);
-    font-size: var(--font-text-sm-size, .8rem);
+
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
   }
-  #empty {
+  .status-dot::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .status-dot.ok { color: var(--success); }
+  .status-dot.err { color: var(--danger); }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    padding: 48px 24px;
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--border-strong);
+    background: var(--bg-subtle);
+  }
+
+  body.compact .empty {
+    padding: 20px 14px;
+  }
+
+  .empty-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
     display: grid;
-    gap: 3px;
-    padding: 8px;
+    place-items: center;
+    color: var(--text-muted);
   }
-  #empty p { margin: 0; }
-  #empty-title { font-weight: 500; }
-  #empty-hint {
-    color: var(--color-text-secondary, GrayText);
-    font-size: var(--font-text-sm-size, .8rem);
-    text-wrap: pretty;
+
+  .empty h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
   }
-  #status { color: var(--color-text-danger, CanvasText); }
+
+  .empty p {
+    margin: 0;
+    max-width: 360px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Modal */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.36);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 20;
+  }
+
+  .dialog {
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    padding: 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .dialog-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 96px;
+    gap: 10px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .field input {
+    height: 36px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  .field-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+  }
+
+  .seg button {
+    height: 30px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .seg button.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+
+  .dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 520px) {
+    .page { padding: 14px 12px; }
+    .card { flex-direction: column; align-items: stretch; }
+    .actions { justify-content: flex-end; padding-top: 4px; border-top: 1px solid var(--border); }
+    .row-2 { grid-template-columns: 1fr 80px; }
+  }
 </style>
 </head>
 <body>
-<main class="picker" id="picker">
-  <header class="header">
-    <div class="header-left">
-      <h1 id="title"></h1>
-      <span id="count"></span>
+<main class="page" id="app-root">
+  <header class="topbar">
+    <div class="heading">
+      <div class="title-row">
+        <h1 id="page-title"></h1>
+        <span class="pill" id="count-pill"></span>
+      </div>
+      <p class="subtitle" id="page-subtitle"></p>
     </div>
-    <button id="refresh-btn" type="button"></button>
+    <button class="btn btn-primary btn-add" id="add-btn" type="button"></button>
   </header>
-  <p id="loading" role="status"></p>
-  <div id="servers"></div>
-  <div id="empty" hidden>
-    <p id="empty-title"></p>
+
+  <div class="banner" id="banner" role="status" hidden></div>
+
+  <section class="list" id="server-list"></section>
+
+  <section class="empty" id="empty-state" hidden>
+    <div class="empty-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="8" rx="2"/>
+        <rect x="2" y="13" width="20" height="8" rx="2"/>
+        <line x1="6" y1="7" x2="6.01" y2="7"/>
+        <line x1="6" y1="17" x2="6.01" y2="17"/>
+      </svg>
+    </div>
+    <h2 id="empty-title"></h2>
     <p id="empty-hint"></p>
-  </div>
-  <p id="status" role="alert" hidden></p>
+    <button class="btn btn-primary" id="empty-add-btn" type="button"></button>
+  </section>
 </main>
+
+<div class="backdrop" id="modal-backdrop" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="dialog-header">
+      <h2 id="modal-title"></h2>
+      <button class="btn btn-ghost" id="modal-close" type="button" aria-label="Close">✕</button>
+    </div>
+    <form class="form" id="profile-form">
+      <div class="field">
+        <label for="f-name" id="lbl-name"></label>
+        <input id="f-name" type="text" autocomplete="off">
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-host" id="lbl-host"></label>
+          <input id="f-host" type="text" required autocomplete="off" placeholder="10.0.0.10">
+        </div>
+        <div class="field">
+          <label for="f-port" id="lbl-port"></label>
+          <input id="f-port" type="number" min="1" max="65535" value="22" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-user" id="lbl-user"></label>
+        <input id="f-user" type="text" required autocomplete="off" placeholder="root">
+      </div>
+      <div class="field">
+        <label id="lbl-auth"></label>
+        <div class="seg">
+          <button type="button" id="seg-password"></button>
+          <button type="button" id="seg-key"></button>
+        </div>
+      </div>
+      <div class="field" id="group-password">
+        <label for="f-password" id="lbl-password"></label>
+        <input id="f-password" type="password" autocomplete="new-password">
+        <span class="field-hint" id="hint-password" hidden></span>
+      </div>
+      <div class="field" id="group-key" hidden>
+        <label for="f-keypath" id="lbl-keypath"></label>
+        <input id="f-keypath" type="text" autocomplete="off" placeholder="~/.ssh/id_ed25519">
+      </div>
+      <div class="field" id="group-passphrase" hidden>
+        <label for="f-passphrase" id="lbl-passphrase"></label>
+        <input id="f-passphrase" type="password" autocomplete="new-password">
+        <span class="field-hint" id="hint-passphrase" hidden></span>
+      </div>
+      <div class="banner error" id="form-error" hidden></div>
+      <div class="dialog-footer">
+        <button class="btn" id="cancel-btn" type="button"></button>
+        <button class="btn btn-primary" id="save-btn" type="submit"></button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>/* picker */</script>
 </body>
 </html>

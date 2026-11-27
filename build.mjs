@@ -12,8 +12,9 @@ await build({
   platform: "node",
   format: "esm",
   target: "node20",
+  external: ["cpu-features"],
   banner: {
-    js: '#!/usr/bin/env node\nimport { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+    js: '#!/usr/bin/env node\nimport { createRequire } from "node:module"; import { fileURLToPath as __fileURLToPath } from "node:url"; import { dirname as __pathDirname } from "node:path"; const require = createRequire(import.meta.url); const __filename = __fileURLToPath(import.meta.url); const __dirname = __pathDirname(__filename);',
   },
 });
 

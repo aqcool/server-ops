@@ -2,49 +2,28 @@
 
 An open-source **MCP Server + MCP App Plugin** for **Google Antigravity** and standard MCP clients.
 
-It lets you authorize specific SSH hosts from `~/.ssh/config` via an interactive MCP App picker UI, then lets the agent run remote shell commands and atomically upload local files only on the hosts you explicitly checked.
+Manage SSH servers directly inside an interactive UI with **ZCode-style separated metadata + encrypted credential storage** (no `~/.ssh/config` dependency), authorize specific servers for the agent, execute remote commands, and atomically upload files.
 
 ## Features
 
-- **Interactive MCP App UI (`@modelcontextprotocol/ext-apps`)**: Check/uncheck SSH hosts directly inside chat (inline) or in Antigravity's side pane (`aux_pane`) / left sidebar (`global`).
-- **Least-Privilege Host Authorization**: The model only sees hosts you explicitly selected (`server_list`); SSH keys and credentials stay in your local SSH client / `ssh-agent`.
-- **Zero-Config `~/.ssh/config` Discovery**: Automatically parses concrete `Host` aliases (including `Include` directives), skipping wildcard entries.
+- **Standalone Server Management UI (`@modelcontextprotocol/ext-apps`)**: Add, edit, delete, test connectivity, and check/uncheck authorized SSH servers directly in Antigravity's full-page view (`global`), side pane (`aux_pane`), or inline chat card.
+- **Separated Profile & Encrypted Credential Storage**:
+  - Non-sensitive profile metadata (`host`, `port`, `username`, `displayName`, `privateKeyPath`) is stored in `${PLUGIN_DATA}/profiles.json`.
+  - Passwords and private key passphrases are stored separately in the **macOS Login Keychain** (with `AES-256-GCM` encrypted vault fallback on Linux/Windows) and are never exposed to the LLM or UI.
+- **Built-in Pure-JS SSH & SFTP Engine (`ssh2`)**: Supports password auth and private key + passphrase auth without modifying or depending on OS `~/.ssh/config`.
 - **Safe Remote Operations**:
-  - `open_server_picker`: Opens the interactive server picker UI.
+  - `open_server_picker`: Opens the Server Ops UI.
   - `server_list`: Lists currently authorized servers.
   - `remote_run`: Executes a shell command on an authorized server (32 KiB output cap, timeout & cancellation support).
-  - `server_copy`: Uploads a local file to a remote temporary staging file and atomically publishes it (`replace` / `skip` / `error`) with automatic cleanup on failure.
+  - `server_copy`: Uploads a local file via SFTP to a remote temporary staging file and atomically publishes it (`replace` / `skip` / `error`) with automatic cleanup on failure.
 
 ## Install as an Antigravity Plugin
-
-Because `dist/` is pre-bundled with zero runtime dependencies, you can clone directly into Antigravity's global plugins directory:
 
 ```bash
 git clone https://github.com/aqcool/server-ops.git ~/.gemini/config/plugins/server-ops
 ```
 
-Antigravity automatically discovers `plugin.json`, `mcp_config.json`, and `skills/server-ops/SKILL.md`.
-
-## Use with Other MCP Clients
-
-Add to your MCP config (e.g., Claude Desktop / Cursor):
-
-```json
-{
-  "mcpServers": {
-    "server-ops": {
-      "command": "node",
-      "args": ["/path/to/server-ops/dist/server.mjs"]
-    }
-  }
-}
-```
-
-### CLI Options / Environment Variables
-
-- `--data-dir=<path>` / `SERVER_OPS_DATA_DIR`: Directory for persisting authorized host selections (defaults to `~/.config/server-ops`).
-- `--ssh-config=<path>` / `SERVER_OPS_SSH_CONFIG`: Path to SSH config file (defaults to `~/.ssh/config`).
-- `--workspace=<path>` / `SERVER_OPS_WORKSPACE`: Optional workspace root to confine `server_copy` source paths.
+Antigravity automatically discovers `plugin.json`, `mcp_config.json`, and `skills/server-ops/SKILL.md` without restarting.
 
 ## Development
 
