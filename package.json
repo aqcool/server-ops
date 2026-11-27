@@ -1,0 +1,43 @@
+{
+  "name": "server-ops-mcp",
+  "version": "0.1.0",
+  "description": "Standalone MCP server and MCP App plugin for Antigravity and MCP clients: select SSH hosts via an interactive UI, execute remote commands, and atomically upload files.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "server-ops-mcp": "./dist/server.mjs"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "plugin.json",
+    "mcp_config.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-app",
+    "antigravity",
+    "ssh",
+    "server-ops",
+    "devops"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aqcool/server-ops.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "esbuild": "^0.25.0",
+    "zod": "^3.24.0"
+  }
+}

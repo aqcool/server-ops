@@ -1,0 +1,15 @@
+{
+  "name": "server-ops",
+  "displayName": "Server Ops",
+  "version": "0.1.0",
+  "description": "Select saved SSH hosts with an interactive MCP App picker, run remote shell commands, and atomically upload files.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aqcool/server-ops"
+  },
+  "suggestedPrompts": [
+    "Open the server picker so I can choose which SSH hosts to authorize",
+    "Check disk usage and service health on my selected server",
+    "Upload the local config file to /tmp/app.conf on the selected server"
+  ]
+}
