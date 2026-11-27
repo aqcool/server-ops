@@ -1,11 +1,11 @@
 {
-  "name": "server-ops-mcp",
+  "name": "antigravity-server-ops",
   "version": "0.2.0",
-  "description": "Standalone MCP server and MCP App plugin for Antigravity and MCP clients: manage SSH servers with encrypted credential storage, authorize hosts via UI, execute remote commands, and atomically upload files.",
+  "description": "Standalone SSH server-ops MCP Server & MCP App plugin for Google Antigravity and MCP clients with encrypted credential storage.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "server-ops-mcp": "./dist/server.mjs"
+    "antigravity-server-ops": "./dist/cli.mjs"
   },
   "files": [
     "dist",
@@ -20,9 +20,9 @@
     "test": "node --test test/*.test.mjs"
   },
   "keywords": [
+    "antigravity",
     "mcp",
     "mcp-app",
-    "antigravity",
     "ssh",
     "server-ops",
     "devops"

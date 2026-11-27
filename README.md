@@ -1,12 +1,26 @@
-# server-ops
+# antigravity-server-ops
 
 An open-source **MCP Server + MCP App Plugin** for **Google Antigravity** and standard MCP clients.
 
-Manage SSH servers directly inside an interactive UI with **ZCode-style separated metadata + encrypted credential storage** (no `~/.ssh/config` dependency), authorize specific servers for the agent, execute remote commands, and atomically upload files.
+Manage SSH servers directly inside an Antigravity-styled UI with **ZCode-style separated metadata + encrypted credential storage** (no `~/.ssh/config` dependency), authorize specific servers for the agent, execute remote commands, and atomically upload files.
+
+## Quick Start (One-Command Install via `npx`)
+
+```bash
+npx -y antigravity-server-ops init
+```
+
+That's it! It installs the plugin into `~/.gemini/config/plugins/server-ops` and Antigravity discovers it automatically without restarting.
+
+To uninstall:
+
+```bash
+npx -y antigravity-server-ops uninstall
+```
 
 ## Features
 
-- **Standalone Server Management UI (`@modelcontextprotocol/ext-apps`)**: Add, edit, delete, test connectivity, and check/uncheck authorized SSH servers directly in Antigravity's full-page view (`global`), side pane (`aux_pane`), or inline chat card.
+- **Antigravity-Native MCP App UI (`@modelcontextprotocol/ext-apps`)**: Add, edit, delete, test SSH connectivity, and toggle server authorization in Antigravity's full-page view (`global`), side pane (`aux_pane`), or inline chat card.
 - **Separated Profile & Encrypted Credential Storage**:
   - Non-sensitive profile metadata (`host`, `port`, `username`, `displayName`, `privateKeyPath`) is stored in `${PLUGIN_DATA}/profiles.json`.
   - Passwords and private key passphrases are stored separately in the **macOS Login Keychain** (with `AES-256-GCM` encrypted vault fallback on Linux/Windows) and are never exposed to the LLM or UI.
@@ -17,13 +31,18 @@ Manage SSH servers directly inside an interactive UI with **ZCode-style separate
   - `remote_run`: Executes a shell command on an authorized server (32 KiB output cap, timeout & cancellation support).
   - `server_copy`: Uploads a local file via SFTP to a remote temporary staging file and atomically publishes it (`replace` / `skip` / `error`) with automatic cleanup on failure.
 
-## Install as an Antigravity Plugin
+## Use with Other MCP Clients
 
-```bash
-git clone https://github.com/aqcool/server-ops.git ~/.gemini/config/plugins/server-ops
+```json
+{
+  "mcpServers": {
+    "server-ops": {
+      "command": "npx",
+      "args": ["-y", "antigravity-server-ops"]
+    }
+  }
+}
 ```
-
-Antigravity automatically discovers `plugin.json`, `mcp_config.json`, and `skills/server-ops/SKILL.md` without restarting.
 
 ## Development
 

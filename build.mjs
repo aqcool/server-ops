@@ -3,22 +3,38 @@ import { chmod, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
+const nodeBanner =
+  '#!/usr/bin/env node\nimport { createRequire } from "node:module"; import { fileURLToPath as __fileURLToPath } from "node:url"; import { dirname as __pathDirname } from "node:path"; const require = createRequire(import.meta.url); const __filename = __fileURLToPath(import.meta.url); const __dirname = __pathDirname(__filename);';
 
-await build({
-  absWorkingDir: root,
-  entryPoints: ["src/server.mjs"],
-  outfile: "dist/server.mjs",
-  bundle: true,
-  platform: "node",
-  format: "esm",
-  target: "node20",
-  external: ["cpu-features"],
-  banner: {
-    js: '#!/usr/bin/env node\nimport { createRequire } from "node:module"; import { fileURLToPath as __fileURLToPath } from "node:url"; import { dirname as __pathDirname } from "node:path"; const require = createRequire(import.meta.url); const __filename = __fileURLToPath(import.meta.url); const __dirname = __pathDirname(__filename);',
-  },
-});
+await Promise.all([
+  build({
+    absWorkingDir: root,
+    entryPoints: ["src/server-entry.mjs"],
+    outfile: "dist/server.mjs",
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    external: ["cpu-features"],
+    banner: { js: nodeBanner },
+  }),
+  build({
+    absWorkingDir: root,
+    entryPoints: ["src/cli-entry.mjs"],
+    outfile: "dist/cli.mjs",
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    external: ["cpu-features"],
+    banner: { js: nodeBanner },
+  }),
+]);
 
-await chmod(new URL("dist/server.mjs", import.meta.url), 0o755);
+await Promise.all([
+  chmod(new URL("dist/server.mjs", import.meta.url), 0o755),
+  chmod(new URL("dist/cli.mjs", import.meta.url), 0o755),
+]);
 
 const panel = await build({
   absWorkingDir: root,

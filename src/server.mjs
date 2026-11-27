@@ -377,7 +377,3 @@ export async function main(argv = process.argv.slice(2)) {
 
   await server.connect(new StdioServerTransport());
 }
-
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await main();
-}

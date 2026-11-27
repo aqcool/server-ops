@@ -12,14 +12,17 @@ const app = new App(
 
 const $ = (id) => document.getElementById(id);
 
+const SERVER_ICON =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>';
+
 const I18N = {
   zh: {
-    pageTitle: "SSH 服务器",
-    pageSubtitle: "独立管理服务器连接与加密凭据，仅勾选授权的服务器对 Agent 可见。",
+    pageTitle: "Server Ops",
+    pageSubtitle: "独立管理 SSH 服务器与加密凭据，打开开关即可授权给 Agent 使用。",
     addBtn: "+ 添加服务器",
-    emptyTitle: "还没有保存的服务器",
-    emptyHint: "添加一台 SSH 服务器并勾选授权后，即可让 Agent 执行运维命令或上传文件。密码与口令将加密存储在系统钥匙串中。",
-    emptyAddBtn: "+ 添加第一台服务器",
+    emptyTitle: "暂无已保存的服务器",
+    emptyHint: "添加 SSH 服务器并开启授权开关，即可让 Agent 执行命令或上传文件。凭据加密保存在系统钥匙串中。",
+    emptyAddBtn: "+ 添加服务器",
     authorizedCount: (n) => `已授权 ${n} 台`,
     authPassword: "密码",
     authPrivateKey: "私钥",
@@ -27,7 +30,8 @@ const I18N = {
     testingBtn: "测试中…",
     editBtn: "编辑",
     deleteBtn: "删除",
-    confirmDelete: (name) => `确认删除「${name}」？已保存的凭据也会一并清除。`,
+    toggleTitle: "授权给 Agent",
+    confirmDelete: (name) => `确认删除「${name}」？已保存的加密凭据也会一并清除。`,
     statusOk: "已连通",
     statusFailed: "连接失败",
     modalAdd: "添加 SSH 服务器",
@@ -53,12 +57,12 @@ const I18N = {
     passwordRequired: "请填写登录密码。",
   },
   en: {
-    pageTitle: "SSH Servers",
-    pageSubtitle: "Manage SSH profiles with encrypted credentials. Only checked servers are visible to the agent.",
+    pageTitle: "Server Ops",
+    pageSubtitle: "Manage SSH servers with encrypted credentials. Toggle a host on to authorize the agent.",
     addBtn: "+ Add Server",
     emptyTitle: "No saved servers yet",
-    emptyHint: "Add an SSH server and check it to authorize remote commands and file uploads. Secrets are stored encrypted in the OS keychain.",
-    emptyAddBtn: "+ Add Your First Server",
+    emptyHint: "Add an SSH server and toggle it on to authorize remote commands and file uploads. Secrets are stored encrypted in the OS keychain.",
+    emptyAddBtn: "+ Add Server",
     authorizedCount: (n) => `${n} authorized`,
     authPassword: "Password",
     authPrivateKey: "SSH Key",
@@ -66,7 +70,8 @@ const I18N = {
     testingBtn: "Testing…",
     editBtn: "Edit",
     deleteBtn: "Delete",
-    confirmDelete: (name) => `Delete "${name}"? Stored credentials will also be removed.`,
+    toggleTitle: "Authorize for agent",
+    confirmDelete: (name) => `Delete "${name}"? Stored encrypted credentials will also be removed.`,
     statusOk: "Connected",
     statusFailed: "Failed",
     modalAdd: "Add SSH Server",
@@ -162,32 +167,23 @@ function renderList() {
   countEl.textContent = t.authorizedCount(selected.size);
   countEl.classList.toggle("active", selected.size > 0);
 
-  $("empty-state").hidden = profiles.length > 0;
+  const hasItems = profiles.length > 0;
+  $("empty-state").hidden = hasItems;
   const container = $("server-list");
+  container.hidden = !hasItems;
   container.replaceChildren();
 
   for (const profile of profiles) {
     const isSelected = selected.has(profile.id);
-    const card = document.createElement("div");
-    card.className = `card${isSelected ? " selected" : ""}`;
+    const row = document.createElement("div");
+    row.className = `row${isSelected ? " selected" : ""}`;
 
-    const main = document.createElement("label");
-    main.className = "card-main";
+    const left = document.createElement("div");
+    left.className = "row-left";
 
-    const checkWrap = document.createElement("span");
-    checkWrap.className = "check-wrap";
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = isSelected;
-    box.disabled = busy;
-    box.onchange = () => void toggleAuthorize(profile.id, box.checked);
-
-    const checkVisual = document.createElement("span");
-    checkVisual.className = "check-box";
-    checkVisual.innerHTML = isSelected
-      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-      : "";
-    checkWrap.append(box, checkVisual);
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.innerHTML = SERVER_ICON;
 
     const info = document.createElement("div");
     info.className = "info";
@@ -223,35 +219,60 @@ function renderList() {
     }
 
     info.append(nameLine, metaLine);
-    main.append(checkWrap, info);
+    left.append(avatar, info);
+
+    const right = document.createElement("div");
+    right.className = "row-right";
 
     const actions = document.createElement("div");
     actions.className = "actions";
 
     const testBtn = document.createElement("button");
     testBtn.type = "button";
-    testBtn.className = "btn btn-ghost";
+    testBtn.className = "btn btn-icon";
     testBtn.textContent = testingId === profile.id ? t.testingBtn : t.testBtn;
     testBtn.disabled = busy || testingId !== null;
     testBtn.onclick = () => void runTest(profile);
 
     const editBtn = document.createElement("button");
     editBtn.type = "button";
-    editBtn.className = "btn btn-ghost";
+    editBtn.className = "btn btn-icon";
     editBtn.textContent = t.editBtn;
     editBtn.disabled = busy;
     editBtn.onclick = () => openModal(profile);
 
     const delBtn = document.createElement("button");
     delBtn.type = "button";
-    delBtn.className = "btn btn-ghost danger";
+    delBtn.className = "btn btn-icon danger";
     delBtn.textContent = t.deleteBtn;
     delBtn.disabled = busy;
     delBtn.onclick = () => void removeProfile(profile);
 
     actions.append(testBtn, editBtn, delBtn);
-    card.append(main, actions);
-    container.append(card);
+
+    const divider = document.createElement("span");
+    divider.className = "divider-v";
+
+    const sw = document.createElement("label");
+    sw.className = "switch";
+    sw.title = t.toggleTitle;
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = isSelected;
+    box.disabled = busy;
+    box.setAttribute("aria-label", `${t.toggleTitle}: ${profile.name}`);
+    box.onchange = () => void toggleAuthorize(profile.id, box.checked);
+
+    const track = document.createElement("span");
+    track.className = "track";
+    const thumb = document.createElement("span");
+    thumb.className = "thumb";
+    track.append(thumb);
+    sw.append(box, track);
+
+    right.append(actions, divider, sw);
+    row.append(left, right);
+    container.append(row);
   }
 }
 

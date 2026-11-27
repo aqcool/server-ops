@@ -27382,7 +27382,6 @@ var require_lib2 = __commonJS({
 import { readFile as readFile4, realpath, stat } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
 import { isAbsolute, join as join4, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -39425,9 +39424,6 @@ async function main(argv = process.argv.slice(2)) {
   });
   await server.connect(new StdioServerTransport());
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await main();
-}
-export {
-  main
-};
+
+// src/server-entry.mjs
+await main();
