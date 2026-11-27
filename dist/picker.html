@@ -582,6 +582,94 @@
     border-top: 1px solid var(--border);
   }
 
+  .toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    cursor: pointer;
+  }
+
+  .toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .toggle-title {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .tag-direct {
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 8%, var(--bg));
+    border-color: color-mix(in srgb, var(--success) 28%, transparent);
+  }
+
+  .update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    background: var(--accent-soft);
+    font-size: 12.5px;
+  }
+
+  .update-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  body.compact .footer-bar {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .version-text {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .update-btn {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11.5px;
+  }
+
+  .update-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
   @media (max-width: 540px) {
     .page { padding: 14px 12px; }
     .row { flex-wrap: wrap; gap: 10px; }
@@ -603,6 +691,14 @@
     <button class="btn btn-primary btn-add" id="add-btn" type="button"></button>
   </header>
 
+  <div class="update-banner" id="update-banner" role="status" hidden>
+    <span id="update-banner-text"></span>
+    <div class="update-banner-actions">
+      <button class="btn btn-primary" id="update-open-btn" type="button" style="height:26px;padding:0 10px;font-size:12px;"></button>
+      <button class="btn btn-icon" id="update-dismiss-btn" type="button" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
   <div class="banner" id="banner" role="status" hidden></div>
 
   <section class="surface" id="server-list" hidden></section>
@@ -620,6 +716,14 @@
     <p id="empty-hint"></p>
     <button class="btn btn-primary" id="empty-add-btn" type="button"></button>
   </section>
+
+  <footer class="footer-bar">
+    <span class="version-text" id="version-label"></span>
+    <button class="btn btn-icon update-btn" id="check-update-btn" type="button">
+      <span class="update-dot" id="update-dot" hidden></span>
+      <span id="check-update-label"></span>
+    </button>
+  </footer>
 </main>
 
 <div class="backdrop" id="modal-backdrop" hidden>
@@ -668,6 +772,16 @@
         <input id="f-passphrase" type="password" autocomplete="new-password">
         <span class="field-hint" id="hint-passphrase" hidden></span>
       </div>
+      <label class="toggle-row" for="f-bypass-proxy">
+        <span class="toggle-text">
+          <span class="toggle-title" id="lbl-bypass-proxy"></span>
+          <span class="field-hint" id="hint-bypass-proxy"></span>
+        </span>
+        <span class="switch">
+          <input id="f-bypass-proxy" type="checkbox">
+          <span class="track"><span class="thumb"></span></span>
+        </span>
+      </label>
       <div class="banner error" id="form-error" hidden></div>
       <div class="dialog-footer">
         <button class="btn" id="cancel-btn" type="button"></button>
@@ -15584,7 +15698,7 @@ container holding the app. Specify either width or maxWidth, and either height o
 
   // src/picker.mjs
   var app = new i(
-    { name: "Server Ops", version: "0.2.0" },
+    { name: "Server Ops", version: "0.3.0" },
     { availableDisplayModes: ["inline"] },
     { autoResize: false }
   );
@@ -15629,7 +15743,16 @@ container holding the app. Specify either width or maxWidth, and either height o
       testSuccess: (name, info) => `\u300C${name}\u300D\u8FDE\u63A5\u6210\u529F\uFF1A${info}`,
       testFail: (name, err) => `\u300C${name}\u300D\u8FDE\u63A5\u5931\u8D25\uFF1A${err}`,
       keyRequired: "\u8BF7\u586B\u5199\u79C1\u94A5\u6587\u4EF6\u8DEF\u5F84\u3002",
-      passwordRequired: "\u8BF7\u586B\u5199\u767B\u5F55\u5BC6\u7801\u3002"
+      passwordRequired: "\u8BF7\u586B\u5199\u767B\u5F55\u5BC6\u7801\u3002",
+      directTag: "\u76F4\u8FDE",
+      lblBypassProxy: "\u7ED5\u8FC7\u4EE3\u7406\u76F4\u8FDE\uFF08Bypass TUN\uFF09",
+      hintBypassProxy: "\u8DF3\u8FC7 FlClash / Clash / Surge \u7B49 TUN \u865A\u62DF\u7F51\u5361\uFF0C\u901A\u8FC7\u7269\u7406\u7F51\u5361\u76F4\u8FDE\uFF08\u652F\u6301 macOS / Windows\uFF09\u3002",
+      checkUpdate: "\u68C0\u67E5\u66F4\u65B0",
+      checkingUpdate: "\u68C0\u67E5\u4E2D\u2026",
+      upToDate: (v2) => `\u5DF2\u662F\u6700\u65B0\u7248\u672C v${v2}`,
+      updateAvailable: (v2) => `\u53D1\u73B0\u65B0\u7248\u672C v${v2}`,
+      openRelease: "\u67E5\u770B\u66F4\u65B0",
+      updateFailed: (err) => `\u68C0\u67E5\u66F4\u65B0\u5931\u8D25\uFF1A${err}`
     },
     en: {
       pageTitle: "Server Ops",
@@ -15669,7 +15792,16 @@ container holding the app. Specify either width or maxWidth, and either height o
       testSuccess: (name, info) => `Connected to ${name}: ${info}`,
       testFail: (name, err) => `Connection failed for ${name}: ${err}`,
       keyRequired: "Please enter a private key path.",
-      passwordRequired: "Please enter a password."
+      passwordRequired: "Please enter a password.",
+      directTag: "Direct",
+      lblBypassProxy: "Direct Connect (Bypass TUN)",
+      hintBypassProxy: "Bypass TUN proxies (FlClash / Clash / Surge) via the physical network interface (macOS & Windows).",
+      checkUpdate: "Check Updates",
+      checkingUpdate: "Checking\u2026",
+      upToDate: (v2) => `Up to date (v${v2})`,
+      updateAvailable: (v2) => `New version v${v2} available`,
+      openRelease: "Open Release",
+      updateFailed: (err) => `Update check failed: ${err}`
     }
   };
   var t = I18N.en;
@@ -15679,6 +15811,9 @@ container holding the app. Specify either width or maxWidth, and either height o
   var testingId = null;
   var editingProfile = null;
   var authType = "password";
+  var appVersion = "0.3.0";
+  var checkingUpdate = false;
+  var latestUpdateInfo = null;
   async function callTool(name, args = {}) {
     const reply = await app.callServerTool({ name, arguments: args });
     if (reply.isError) {
@@ -15725,8 +15860,13 @@ container holding the app. Specify either width or maxWidth, and either height o
     $("lbl-passphrase").textContent = t.lblPassphrase;
     $("hint-password").textContent = t.hintSavedSecret;
     $("hint-passphrase").textContent = t.hintSavedSecret;
+    $("lbl-bypass-proxy").textContent = t.lblBypassProxy;
+    $("hint-bypass-proxy").textContent = t.hintBypassProxy;
     $("cancel-btn").textContent = t.cancel;
     $("save-btn").textContent = t.save;
+    $("version-label").textContent = `v${appVersion}`;
+    $("check-update-label").textContent = t.checkUpdate;
+    $("update-open-btn").textContent = t.openRelease;
   }
   function renderList() {
     const countEl = $("count-pill");
@@ -15757,6 +15897,12 @@ container holding the app. Specify either width or maxWidth, and either height o
       tag.className = "tag";
       tag.textContent = profile.authType === "privateKey" ? t.authPrivateKey : t.authPassword;
       nameLine.append(nameEl, tag);
+      if (profile.bypassProxy) {
+        const directTag = document.createElement("span");
+        directTag.className = "tag tag-direct";
+        directTag.textContent = t.directTag;
+        nameLine.append(directTag);
+      }
       const metaLine = document.createElement("div");
       metaLine.className = "meta-line";
       const sub = document.createElement("span");
@@ -15840,6 +15986,7 @@ container holding the app. Specify either width or maxWidth, and either height o
     $("f-password").value = "";
     $("f-keypath").value = profile?.privateKeyPath ?? "";
     $("f-passphrase").value = "";
+    $("f-bypass-proxy").checked = Boolean(profile?.bypassProxy);
     $("hint-password").hidden = !(profile && profile.hasPassword);
     $("hint-passphrase").hidden = !(profile && profile.hasPassphrase);
     $("form-error").hidden = true;
@@ -15856,10 +16003,52 @@ container holding the app. Specify either width or maxWidth, and either height o
       const res = await callTool("picker_read");
       profiles = res?.profiles ?? [];
       selected = new Set(res?.serverIds ?? []);
+      if (res?.version) {
+        appVersion = res.version;
+        $("version-label").textContent = `v${appVersion}`;
+      }
       renderList();
       if (!quiet) showBanner();
     } catch (err) {
       if (!quiet) showBanner(err instanceof Error ? err.message : t.loadFailed, "error");
+    }
+  }
+  async function runUpdateCheck({ quiet = false } = {}) {
+    if (checkingUpdate) return;
+    checkingUpdate = true;
+    const btn = $("check-update-btn");
+    const label = $("check-update-label");
+    btn.disabled = true;
+    label.textContent = t.checkingUpdate;
+    try {
+      const res = await callTool("update_check");
+      if (res?.currentVersion) {
+        appVersion = res.currentVersion;
+        $("version-label").textContent = `v${appVersion}`;
+      }
+      if (res?.hasUpdate) {
+        latestUpdateInfo = res;
+        $("update-dot").hidden = false;
+        $("update-banner-text").textContent = t.updateAvailable(res.latestVersion);
+        $("update-banner").hidden = false;
+        label.textContent = t.updateAvailable(res.latestVersion);
+      } else {
+        latestUpdateInfo = null;
+        $("update-dot").hidden = true;
+        $("update-banner").hidden = true;
+        label.textContent = t.checkUpdate;
+        if (!quiet) {
+          showBanner(t.upToDate(res?.currentVersion || appVersion), "success");
+        }
+      }
+    } catch (err) {
+      label.textContent = t.checkUpdate;
+      if (!quiet) {
+        showBanner(t.updateFailed(err instanceof Error ? err.message : String(err)), "error");
+      }
+    } finally {
+      checkingUpdate = false;
+      btn.disabled = false;
     }
   }
   async function toggleAuthorize(id, checked) {
@@ -15930,6 +16119,7 @@ container holding the app. Specify either width or maxWidth, and either height o
     const password = $("f-password").value;
     const privateKeyPath = $("f-keypath").value.trim();
     const passphrase = $("f-passphrase").value;
+    const bypassProxy = $("f-bypass-proxy").checked;
     if (authType === "privateKey" && !privateKeyPath) {
       errEl.textContent = t.keyRequired;
       errEl.hidden = false;
@@ -15951,6 +16141,7 @@ container holding the app. Specify either width or maxWidth, and either height o
         port,
         username,
         authType,
+        bypassProxy,
         ...authType === "password" && password ? { password } : {},
         ...authType === "privateKey" ? { privateKeyPath } : {},
         ...authType === "privateKey" && passphrase ? { passphrase } : {}
@@ -15972,6 +16163,10 @@ container holding the app. Specify either width or maxWidth, and either height o
   async function start() {
     app.onhostcontextchanged = applyAppearance;
     app.ontoolresult = (result) => {
+      if (result?.structuredContent?.version) {
+        appVersion = result.structuredContent.version;
+        $("version-label").textContent = `v${appVersion}`;
+      }
       if (result?.structuredContent?.profiles) {
         profiles = result.structuredContent.profiles;
         selected = new Set(result.structuredContent.serverIds ?? []);
@@ -15988,6 +16183,18 @@ container holding the app. Specify either width or maxWidth, and either height o
     $("seg-password").onclick = () => setAuthType("password");
     $("seg-key").onclick = () => setAuthType("privateKey");
     $("profile-form").onsubmit = (e) => void submitForm(e);
+    $("check-update-btn").onclick = () => void runUpdateCheck({ quiet: false });
+    $("update-dismiss-btn").onclick = () => {
+      $("update-banner").hidden = true;
+    };
+    $("update-open-btn").onclick = () => {
+      const url2 = latestUpdateInfo?.releaseUrl;
+      if (!url2) return;
+      if (app.getHostCapabilities()?.openLinks) {
+        void app.openLink({ url: url2 }).catch(() => {
+        });
+      }
+    };
     await app.connect();
     t = app.getHostContext()?.locale?.startsWith("zh") ? I18N.zh : I18N.en;
     document.documentElement.lang = t === I18N.zh ? "zh-CN" : "en";
@@ -15999,6 +16206,7 @@ container holding the app. Specify either width or maxWidth, and either height o
       if (height > 0) void app.sendSizeChanged({ height });
     }).observe($("app-root"));
     await refresh();
+    void runUpdateCheck({ quiet: true });
   }
   void start().catch(() => showBanner(t.loadFailed, "error"));
 })();

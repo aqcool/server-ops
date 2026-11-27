@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, posix } from "node:path";
 import { Client } from "ssh2";
+import { createDirectStream } from "./direct-socket.mjs";
 
 const OUTPUT_LIMIT_BYTES = 32 * 1024;
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -18,7 +19,7 @@ function expandHome(filePath) {
   return filePath;
 }
 
-async function buildConnectConfig({ profile, password, passphrase }) {
+async function buildConnectConfig({ profile, password, passphrase }, signal) {
   const { target } = profile;
   const config = {
     host: target.host,
@@ -36,7 +37,19 @@ async function buildConnectConfig({ profile, password, passphrase }) {
     config.agent = process.env.SSH_AUTH_SOCK;
   }
 
-  return config;
+  let directStream = null;
+  if (target.bypassProxy) {
+    const direct = await createDirectStream({
+      host: target.host,
+      port: target.port ?? 22,
+      signal,
+      timeoutMs: CONNECT_TIMEOUT_MS,
+    });
+    directStream = direct.stream;
+    config.sock = directStream;
+  }
+
+  return { config, directStream };
 }
 
 async function withSshClient(connectionInput, signal, timeoutMs, fn) {
@@ -48,7 +61,7 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
     throw combinedSignal.reason ?? new Error("Operation aborted.");
   }
 
-  const config = await buildConnectConfig(connectionInput);
+  const { config, directStream } = await buildConnectConfig(connectionInput, combinedSignal);
   const client = new Client();
 
   return new Promise((resolve, reject) => {
@@ -60,6 +73,9 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
       try {
         client.end();
       } catch {}
+      try {
+        directStream?.destroy();
+      } catch {}
       if (err) reject(err);
       else resolve(value);
     };
@@ -68,11 +84,17 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
       try {
         client.destroy();
       } catch {}
+      try {
+        directStream?.destroy();
+      } catch {}
       finish(combinedSignal.reason ?? new Error("Operation aborted."));
     };
 
     combinedSignal.addEventListener("abort", onAbort, { once: true });
 
+    if (directStream) {
+      directStream.once("error", (err) => finish(err));
+    }
     client.once("error", (err) => finish(err));
     client.once("ready", async () => {
       try {

@@ -582,6 +582,94 @@
     border-top: 1px solid var(--border);
   }
 
+  .toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    cursor: pointer;
+  }
+
+  .toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .toggle-title {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .tag-direct {
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 8%, var(--bg));
+    border-color: color-mix(in srgb, var(--success) 28%, transparent);
+  }
+
+  .update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    background: var(--accent-soft);
+    font-size: 12.5px;
+  }
+
+  .update-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  body.compact .footer-bar {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .version-text {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .update-btn {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11.5px;
+  }
+
+  .update-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
   @media (max-width: 540px) {
     .page { padding: 14px 12px; }
     .row { flex-wrap: wrap; gap: 10px; }
@@ -603,6 +691,14 @@
     <button class="btn btn-primary btn-add" id="add-btn" type="button"></button>
   </header>
 
+  <div class="update-banner" id="update-banner" role="status" hidden>
+    <span id="update-banner-text"></span>
+    <div class="update-banner-actions">
+      <button class="btn btn-primary" id="update-open-btn" type="button" style="height:26px;padding:0 10px;font-size:12px;"></button>
+      <button class="btn btn-icon" id="update-dismiss-btn" type="button" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
   <div class="banner" id="banner" role="status" hidden></div>
 
   <section class="surface" id="server-list" hidden></section>
@@ -620,6 +716,14 @@
     <p id="empty-hint"></p>
     <button class="btn btn-primary" id="empty-add-btn" type="button"></button>
   </section>
+
+  <footer class="footer-bar">
+    <span class="version-text" id="version-label"></span>
+    <button class="btn btn-icon update-btn" id="check-update-btn" type="button">
+      <span class="update-dot" id="update-dot" hidden></span>
+      <span id="check-update-label"></span>
+    </button>
+  </footer>
 </main>
 
 <div class="backdrop" id="modal-backdrop" hidden>
@@ -668,6 +772,16 @@
         <input id="f-passphrase" type="password" autocomplete="new-password">
         <span class="field-hint" id="hint-passphrase" hidden></span>
       </div>
+      <label class="toggle-row" for="f-bypass-proxy">
+        <span class="toggle-text">
+          <span class="toggle-title" id="lbl-bypass-proxy"></span>
+          <span class="field-hint" id="hint-bypass-proxy"></span>
+        </span>
+        <span class="switch">
+          <input id="f-bypass-proxy" type="checkbox">
+          <span class="track"><span class="thumb"></span></span>
+        </span>
+      </label>
       <div class="banner error" id="form-error" hidden></div>
       <div class="dialog-footer">
         <button class="btn" id="cancel-btn" type="button"></button>

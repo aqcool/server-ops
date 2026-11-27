@@ -63,6 +63,7 @@ export function createProfileStore(dataDir, credentialStore) {
       privateKeyPath: profile.target.privateKeyPath ?? "",
       hasPassword: Boolean(profile.target.passwordCredentialKey),
       hasPassphrase: Boolean(profile.target.privateKeyPassphraseCredentialKey),
+      bypassProxy: Boolean(profile.target.bypassProxy),
       lastConnectedAt: profile.lastConnectedAt ?? null,
       lastConnectError: profile.lastConnectError ?? null,
       subtitle: `${profile.target.username}@${profile.target.host}${port !== 22 ? `:${port}` : ""}`,
@@ -149,6 +150,7 @@ export function createProfileStore(dataDir, credentialStore) {
             : {}),
           ...(passwordCredentialKey ? { passwordCredentialKey } : {}),
           ...(privateKeyPassphraseCredentialKey ? { privateKeyPassphraseCredentialKey } : {}),
+          ...(input.bypassProxy ? { bypassProxy: true } : {}),
         };
 
         const record = {

@@ -5,7 +5,7 @@ import {
 } from "@modelcontextprotocol/ext-apps";
 
 const app = new App(
-  { name: "Server Ops", version: "0.2.0" },
+  { name: "Server Ops", version: "0.3.0" },
   { availableDisplayModes: ["inline"] },
   { autoResize: false },
 );
@@ -55,6 +55,15 @@ const I18N = {
     testFail: (name, err) => `「${name}」连接失败：${err}`,
     keyRequired: "请填写私钥文件路径。",
     passwordRequired: "请填写登录密码。",
+    directTag: "直连",
+    lblBypassProxy: "绕过代理直连（Bypass TUN）",
+    hintBypassProxy: "跳过 FlClash / Clash / Surge 等 TUN 虚拟网卡，通过物理网卡直连（支持 macOS / Windows）。",
+    checkUpdate: "检查更新",
+    checkingUpdate: "检查中…",
+    upToDate: (v) => `已是最新版本 v${v}`,
+    updateAvailable: (v) => `发现新版本 v${v}`,
+    openRelease: "查看更新",
+    updateFailed: (err) => `检查更新失败：${err}`,
   },
   en: {
     pageTitle: "Server Ops",
@@ -95,6 +104,15 @@ const I18N = {
     testFail: (name, err) => `Connection failed for ${name}: ${err}`,
     keyRequired: "Please enter a private key path.",
     passwordRequired: "Please enter a password.",
+    directTag: "Direct",
+    lblBypassProxy: "Direct Connect (Bypass TUN)",
+    hintBypassProxy: "Bypass TUN proxies (FlClash / Clash / Surge) via the physical network interface (macOS & Windows).",
+    checkUpdate: "Check Updates",
+    checkingUpdate: "Checking…",
+    upToDate: (v) => `Up to date (v${v})`,
+    updateAvailable: (v) => `New version v${v} available`,
+    openRelease: "Open Release",
+    updateFailed: (err) => `Update check failed: ${err}`,
   },
 };
 
@@ -105,6 +123,9 @@ let busy = false;
 let testingId = null;
 let editingProfile = null;
 let authType = "password";
+let appVersion = "0.3.0";
+let checkingUpdate = false;
+let latestUpdateInfo = null;
 
 async function callTool(name, args = {}) {
   const reply = await app.callServerTool({ name, arguments: args });
@@ -158,8 +179,13 @@ function applyStaticLabels() {
   $("lbl-passphrase").textContent = t.lblPassphrase;
   $("hint-password").textContent = t.hintSavedSecret;
   $("hint-passphrase").textContent = t.hintSavedSecret;
+  $("lbl-bypass-proxy").textContent = t.lblBypassProxy;
+  $("hint-bypass-proxy").textContent = t.hintBypassProxy;
   $("cancel-btn").textContent = t.cancel;
   $("save-btn").textContent = t.save;
+  $("version-label").textContent = `v${appVersion}`;
+  $("check-update-label").textContent = t.checkUpdate;
+  $("update-open-btn").textContent = t.openRelease;
 }
 
 function renderList() {
@@ -197,6 +223,12 @@ function renderList() {
     tag.className = "tag";
     tag.textContent = profile.authType === "privateKey" ? t.authPrivateKey : t.authPassword;
     nameLine.append(nameEl, tag);
+    if (profile.bypassProxy) {
+      const directTag = document.createElement("span");
+      directTag.className = "tag tag-direct";
+      directTag.textContent = t.directTag;
+      nameLine.append(directTag);
+    }
 
     const metaLine = document.createElement("div");
     metaLine.className = "meta-line";
@@ -295,6 +327,7 @@ function openModal(profile = null) {
   $("f-password").value = "";
   $("f-keypath").value = profile?.privateKeyPath ?? "";
   $("f-passphrase").value = "";
+  $("f-bypass-proxy").checked = Boolean(profile?.bypassProxy);
   $("hint-password").hidden = !(profile && profile.hasPassword);
   $("hint-passphrase").hidden = !(profile && profile.hasPassphrase);
   $("form-error").hidden = true;
@@ -313,10 +346,53 @@ async function refresh({ quiet = false } = {}) {
     const res = await callTool("picker_read");
     profiles = res?.profiles ?? [];
     selected = new Set(res?.serverIds ?? []);
+    if (res?.version) {
+      appVersion = res.version;
+      $("version-label").textContent = `v${appVersion}`;
+    }
     renderList();
     if (!quiet) showBanner();
   } catch (err) {
     if (!quiet) showBanner(err instanceof Error ? err.message : t.loadFailed, "error");
+  }
+}
+
+async function runUpdateCheck({ quiet = false } = {}) {
+  if (checkingUpdate) return;
+  checkingUpdate = true;
+  const btn = $("check-update-btn");
+  const label = $("check-update-label");
+  btn.disabled = true;
+  label.textContent = t.checkingUpdate;
+  try {
+    const res = await callTool("update_check");
+    if (res?.currentVersion) {
+      appVersion = res.currentVersion;
+      $("version-label").textContent = `v${appVersion}`;
+    }
+    if (res?.hasUpdate) {
+      latestUpdateInfo = res;
+      $("update-dot").hidden = false;
+      $("update-banner-text").textContent = t.updateAvailable(res.latestVersion);
+      $("update-banner").hidden = false;
+      label.textContent = t.updateAvailable(res.latestVersion);
+    } else {
+      latestUpdateInfo = null;
+      $("update-dot").hidden = true;
+      $("update-banner").hidden = true;
+      label.textContent = t.checkUpdate;
+      if (!quiet) {
+        showBanner(t.upToDate(res?.currentVersion || appVersion), "success");
+      }
+    }
+  } catch (err) {
+    label.textContent = t.checkUpdate;
+    if (!quiet) {
+      showBanner(t.updateFailed(err instanceof Error ? err.message : String(err)), "error");
+    }
+  } finally {
+    checkingUpdate = false;
+    btn.disabled = false;
   }
 }
 
@@ -392,6 +468,7 @@ async function submitForm(event) {
   const password = $("f-password").value;
   const privateKeyPath = $("f-keypath").value.trim();
   const passphrase = $("f-passphrase").value;
+  const bypassProxy = $("f-bypass-proxy").checked;
 
   if (authType === "privateKey" && !privateKeyPath) {
     errEl.textContent = t.keyRequired;
@@ -415,6 +492,7 @@ async function submitForm(event) {
       port,
       username,
       authType,
+      bypassProxy,
       ...(authType === "password" && password ? { password } : {}),
       ...(authType === "privateKey" ? { privateKeyPath } : {}),
       ...(authType === "privateKey" && passphrase ? { passphrase } : {}),
@@ -437,6 +515,10 @@ async function submitForm(event) {
 async function start() {
   app.onhostcontextchanged = applyAppearance;
   app.ontoolresult = (result) => {
+    if (result?.structuredContent?.version) {
+      appVersion = result.structuredContent.version;
+      $("version-label").textContent = `v${appVersion}`;
+    }
     if (result?.structuredContent?.profiles) {
       profiles = result.structuredContent.profiles;
       selected = new Set(result.structuredContent.serverIds ?? []);
@@ -454,6 +536,17 @@ async function start() {
   $("seg-password").onclick = () => setAuthType("password");
   $("seg-key").onclick = () => setAuthType("privateKey");
   $("profile-form").onsubmit = (e) => void submitForm(e);
+  $("check-update-btn").onclick = () => void runUpdateCheck({ quiet: false });
+  $("update-dismiss-btn").onclick = () => {
+    $("update-banner").hidden = true;
+  };
+  $("update-open-btn").onclick = () => {
+    const url = latestUpdateInfo?.releaseUrl;
+    if (!url) return;
+    if (app.getHostCapabilities()?.openLinks) {
+      void app.openLink({ url }).catch(() => {});
+    }
+  };
 
   await app.connect();
   t = app.getHostContext()?.locale?.startsWith("zh") ? I18N.zh : I18N.en;
@@ -468,6 +561,7 @@ async function start() {
   }).observe($("app-root"));
 
   await refresh();
+  void runUpdateCheck({ quiet: true });
 }
 
 void start().catch(() => showBanner(t.loadFailed, "error"));

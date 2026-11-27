@@ -14,9 +14,10 @@ import { z } from "zod";
 import { createCredentialStore } from "./credential-store.mjs";
 import { createProfileStore } from "./profile-store.mjs";
 import { execRemote, testConnection, uploadRemote } from "./ssh-backend.mjs";
+import { checkForUpdates } from "./update-checker.mjs";
 
 const PICKER_URI = "ui://server-ops/picker.html";
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 const resource = {
   uri: PICKER_URI,
@@ -89,9 +90,20 @@ const tools = [
       privateKeyPath: stringSchema,
       passphrase: stringSchema,
       clearPassphrase: booleanSchema,
+      bypassProxy: booleanSchema,
     },
     ["host", "username", "authType"],
     appOnly,
+  ),
+  defineTool(
+    "update_check",
+    "Check npm and GitHub for a newer release of Server Ops.",
+    {},
+    [],
+    {
+      ...appOnly,
+      ...readOnly,
+    },
   ),
   defineTool(
     "profile_delete",
@@ -148,6 +160,7 @@ const profileSaveSchema = z.object({
   privateKeyPath: z.string().optional(),
   passphrase: z.string().optional(),
   clearPassphrase: z.boolean().optional(),
+  bypassProxy: z.boolean().optional(),
 });
 const profileIdSchema = z.object({ profileId: z.string().min(1) });
 const remoteRunSchema = z.object({
@@ -240,7 +253,7 @@ export async function main(argv = process.argv.slice(2)) {
                   : "Server Ops opened. Add or select SSH servers to authorize them.",
             },
           ],
-          structuredContent: snap,
+          structuredContent: { ...snap, version: VERSION },
         };
       }
 
@@ -248,7 +261,22 @@ export async function main(argv = process.argv.slice(2)) {
         const snap = await profileStore.snapshot();
         return {
           content: [{ type: "text", text: "Server profiles loaded." }],
-          structuredContent: snap,
+          structuredContent: { ...snap, version: VERSION },
+        };
+      }
+
+      if (params.name === "update_check") {
+        const info = await checkForUpdates({ currentVersion: VERSION });
+        return {
+          content: [
+            {
+              type: "text",
+              text: info.hasUpdate
+                ? `New version available: v${info.latestVersion} (current v${info.currentVersion}).`
+                : `Up to date (v${info.currentVersion}).`,
+            },
+          ],
+          structuredContent: info,
         };
       }
 

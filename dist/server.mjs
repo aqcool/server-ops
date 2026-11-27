@@ -15004,10 +15004,10 @@ var require_agent = __commonJS({
   "node_modules/.pnpm/ssh2@1.17.0/node_modules/ssh2/lib/agent.js"(exports, module) {
     "use strict";
     var { Socket } = __require("net");
-    var { Duplex } = __require("stream");
+    var { Duplex: Duplex2 } = __require("stream");
     var { resolve: resolve2 } = __require("path");
     var { readFile: readFile5 } = __require("fs");
-    var { execFile: execFile2, spawn } = __require("child_process");
+    var { execFile: execFile3, spawn: spawn2 } = __require("child_process");
     var { isParsedKey, parseKey } = require_keyParser();
     var {
       makeBufferParser,
@@ -15157,7 +15157,7 @@ var require_agent = __commonJS({
           stream.proc = void 0;
         }
       }
-      class PageantSocket extends Duplex {
+      class PageantSocket extends Duplex2 {
         constructor() {
           super();
           this.proc = void 0;
@@ -15184,7 +15184,7 @@ var require_agent = __commonJS({
             return cb(new Error("Unexpected multiple agent requests"));
           this.buffer = null;
           let error2;
-          const proc = this.proc = spawn(EXEPATH, [data.length]);
+          const proc = this.proc = spawn2(EXEPATH, [data.length]);
           proc.stdout.on("data", (data2) => {
             this.push(data2);
           });
@@ -15228,7 +15228,7 @@ var require_agent = __commonJS({
             if (err) {
               if (triedCygpath)
                 return cb(new Error("Invalid cygwin unix socket path"));
-              execFile2("cygpath", ["-w", socketPath], (err2, stdout, stderr) => {
+              execFile3("cygpath", ["-w", socketPath], (err2, stdout, stderr) => {
                 if (err2 || stdout.length === 0)
                   return cb(new Error("Invalid cygwin unix socket path"));
                 triedCygpath = true;
@@ -15390,7 +15390,7 @@ var require_agent = __commonJS({
       const SYM_MSGLEN = Symbol("Agent Protocol Current Message Length");
       const SYM_CLOSED = Symbol("Agent Protocol Closed");
       const SYM_ENDED = Symbol("Agent Protocol Ended");
-      return class AgentProtocol extends Duplex {
+      return class AgentProtocol extends Duplex2 {
         /*
             Notes:
               - `constraint` type consists of:
@@ -38774,6 +38774,7 @@ function createProfileStore(dataDir, credentialStore) {
       privateKeyPath: profile.target.privateKeyPath ?? "",
       hasPassword: Boolean(profile.target.passwordCredentialKey),
       hasPassphrase: Boolean(profile.target.privateKeyPassphraseCredentialKey),
+      bypassProxy: Boolean(profile.target.bypassProxy),
       lastConnectedAt: profile.lastConnectedAt ?? null,
       lastConnectError: profile.lastConnectError ?? null,
       subtitle: `${profile.target.username}@${profile.target.host}${port !== 22 ? `:${port}` : ""}`
@@ -38844,7 +38845,8 @@ function createProfileStore(dataDir, credentialStore) {
           username: input.username.trim(),
           ...input.authType === "privateKey" && input.privateKeyPath?.trim() ? { privateKeyPath: input.privateKeyPath.trim() } : {},
           ...passwordCredentialKey ? { passwordCredentialKey } : {},
-          ...privateKeyPassphraseCredentialKey ? { privateKeyPassphraseCredentialKey } : {}
+          ...privateKeyPassphraseCredentialKey ? { privateKeyPassphraseCredentialKey } : {},
+          ...input.bypassProxy ? { bypassProxy: true } : {}
         };
         const record2 = {
           profileId,
@@ -38913,6 +38915,239 @@ import { randomUUID as randomUUID3 } from "node:crypto";
 import { readFile as readFile3 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join as join3, posix } from "node:path";
+
+// src/direct-socket.mjs
+import { execFile as execFile2, spawn } from "node:child_process";
+import { networkInterfaces } from "node:os";
+import { Duplex } from "node:stream";
+import { promisify as promisify2 } from "node:util";
+var execFileAsync2 = promisify2(execFile2);
+var DARWIN_VIRTUAL_IFACE_RE = /^(lo|utun|ppp|ipsec|bridge|awdl|llw|anpi|vmenet|feth|gif|stf|ap)\d*$/i;
+function parseDarwinPhysicalInterface(netstatOutput) {
+  const candidates = [];
+  for (const rawLine of netstatOutput.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.startsWith("default")) continue;
+    const cols = line.split(/\s+/);
+    if (cols.length < 4) continue;
+    const gateway = cols[1];
+    const iface = cols[3];
+    if (!iface || DARWIN_VIRTUAL_IFACE_RE.test(iface)) continue;
+    const hasIpv4Gateway = /^\d+\.\d+\.\d+\.\d+$/.test(gateway);
+    candidates.push({ iface, hasIpv4Gateway });
+  }
+  const preferred = candidates.find((c) => c.hasIpv4Gateway && /^en\d+$/i.test(c.iface)) ?? candidates.find((c) => c.hasIpv4Gateway) ?? candidates.find((c) => /^en\d+$/i.test(c.iface)) ?? candidates[0];
+  return preferred?.iface ?? null;
+}
+function fallbackDarwinInterface() {
+  const ifaces = networkInterfaces();
+  for (const [name, addrs] of Object.entries(ifaces)) {
+    if (DARWIN_VIRTUAL_IFACE_RE.test(name)) continue;
+    if (addrs?.some((a) => a.family === "IPv4" && !a.internal)) {
+      return name;
+    }
+  }
+  return null;
+}
+async function detectDarwinPhysicalInterface() {
+  try {
+    const { stdout } = await execFileAsync2("/usr/sbin/netstat", ["-rn", "-f", "inet"], {
+      timeout: 3e3
+    });
+    const parsed = parseDarwinPhysicalInterface(stdout);
+    if (parsed) return parsed;
+  } catch {
+  }
+  const fallback = fallbackDarwinInterface();
+  if (!fallback) {
+    throw new Error("Could not detect an active physical network interface on macOS.");
+  }
+  return fallback;
+}
+function wrapChildAsDuplex(child, label) {
+  let stderrText = "";
+  let closed = false;
+  child.stderr?.on("data", (chunk) => {
+    if (stderrText.length < 2048) {
+      stderrText += chunk.toString("utf8");
+    }
+  });
+  const killChild = () => {
+    if (closed) return;
+    closed = true;
+    try {
+      child.stdin?.end();
+    } catch {
+    }
+    try {
+      if (child.exitCode === null && !child.killed) {
+        child.kill("SIGKILL");
+      }
+    } catch {
+    }
+  };
+  const duplex = new Duplex({
+    read() {
+      child.stdout?.resume();
+    },
+    write(chunk, encoding, callback) {
+      if (!child.stdin || child.stdin.destroyed) {
+        callback(new Error(`${label} stream is closed.`));
+        return;
+      }
+      if (child.stdin.write(chunk, encoding)) {
+        callback();
+      } else {
+        child.stdin.once("drain", callback);
+      }
+    },
+    final(callback) {
+      try {
+        child.stdin?.end();
+      } catch {
+      }
+      callback();
+    },
+    destroy(err, callback) {
+      killChild();
+      callback(err);
+    }
+  });
+  child.stdout?.on("data", (chunk) => {
+    if (!duplex.push(chunk)) {
+      child.stdout.pause();
+    }
+  });
+  child.stdout?.on("end", () => {
+    duplex.push(null);
+  });
+  child.on("error", (err) => {
+    closed = true;
+    duplex.destroy(new Error(`${label} failed to start: ${err.message}`));
+  });
+  child.on("exit", (code, sig) => {
+    closed = true;
+    if (duplex.destroyed) return;
+    if (code && code !== 0) {
+      const detail = stderrText.trim();
+      duplex.destroy(
+        new Error(
+          detail ? `${label} exited (${code}): ${detail}` : `${label} exited with code ${code}${sig ? ` (${sig})` : ""}.`
+        )
+      );
+    } else {
+      duplex.push(null);
+    }
+  });
+  return duplex;
+}
+function buildWindowsDirectScript({ host, port, timeoutMs }) {
+  const escapedHost = String(host).replaceAll("'", "''");
+  const safePort = Number(port);
+  const safeTimeout = Math.max(1e3, Number(timeoutMs) || 15e3);
+  return `
+$ErrorActionPreference = 'Stop'
+$excludeRe = 'wintun|clash|flclash|mihomo|meta|tap-|tailscale|wireguard|zerotier|vethernet|virtual|hyper-v|vmware|virtualbox|loopback|tunnel|teredo|isatap'
+$ifIndex = $null
+try {
+  $routes = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction Stop | Sort-Object RouteMetric, InterfaceMetric
+  foreach ($r in $routes) {
+    $ad = Get-NetAdapter -InterfaceIndex $r.InterfaceIndex -ErrorAction SilentlyContinue
+    if ($null -eq $ad -or $ad.Status -ne 'Up') { continue }
+    $desc = "$($ad.Name) $($ad.InterfaceDescription)"
+    if ($desc -imatch $excludeRe) { continue }
+    $ifIndex = [int]$r.InterfaceIndex
+    break
+  }
+} catch {}
+
+if ($null -eq $ifIndex) {
+  [Console]::Error.WriteLine('Could not detect an active physical network interface on Windows.')
+  exit 2
+}
+
+$targetHost = '${escapedHost}'
+$targetPort = ${safePort}
+$timeoutMs = ${safeTimeout}
+
+$ip = $null
+if (-not [System.Net.IPAddress]::TryParse($targetHost, [ref]$ip)) {
+  $addrs = [System.Net.Dns]::GetHostAddresses($targetHost) | Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork }
+  if (-not $addrs -or $addrs.Length -eq 0) {
+    [Console]::Error.WriteLine("Could not resolve IPv4 address for $targetHost")
+    exit 3
+  }
+  $ip = $addrs[0]
+}
+
+$sock = New-Object System.Net.Sockets.Socket(
+  [System.Net.Sockets.AddressFamily]::InterNetwork,
+  [System.Net.Sockets.SocketType]::Stream,
+  [System.Net.Sockets.ProtocolType]::Tcp
+)
+$sock.NoDelay = $true
+$netOrderIf = [System.Net.IPAddress]::HostToNetworkOrder([int]$ifIndex)
+$sock.SetSocketOption([System.Net.Sockets.SocketOptionLevel]::IP, [System.Net.Sockets.SocketOptionName]31, $netOrderIf)
+
+$iar = $sock.BeginConnect($ip, $targetPort, $null, $null)
+if (-not $iar.AsyncWaitHandle.WaitOne($timeoutMs, $false)) {
+  $sock.Close()
+  [Console]::Error.WriteLine("Direct TCP connect timed out after $timeoutMs ms (ifIndex=$ifIndex)")
+  exit 4
+}
+$sock.EndConnect($iar)
+
+$netStream = New-Object System.Net.Sockets.NetworkStream($sock, $true)
+$inStream = [Console]::OpenStandardInput()
+$outStream = [Console]::OpenStandardOutput()
+
+$t1 = $inStream.CopyToAsync($netStream)
+$t2 = $netStream.CopyToAsync($outStream)
+[System.Threading.Tasks.Task]::WaitAny(@($t1, $t2)) | Out-Null
+try { $sock.Shutdown([System.Net.Sockets.SocketShutdown]::Both) } catch {}
+try { $netStream.Close() } catch {}
+`.trim();
+}
+async function createDirectStream({ host, port, signal, timeoutMs = 15e3 }) {
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("Operation aborted.");
+  }
+  if (process.platform === "darwin") {
+    const iface = await detectDarwinPhysicalInterface();
+    const timeoutSec = Math.max(1, Math.ceil(timeoutMs / 1e3));
+    const child = spawn("/usr/bin/nc", ["-G", String(timeoutSec), "-b", iface, host, String(port)], {
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    const stream = wrapChildAsDuplex(child, `Direct connect via ${iface}`);
+    if (signal) {
+      const onAbort = () => stream.destroy(signal.reason ?? new Error("Operation aborted."));
+      signal.addEventListener("abort", onAbort, { once: true });
+      stream.once("close", () => signal.removeEventListener("abort", onAbort));
+    }
+    return { stream, iface };
+  }
+  if (process.platform === "win32") {
+    const script = buildWindowsDirectScript({ host, port, timeoutMs });
+    const encoded = Buffer.from(script, "utf16le").toString("base64");
+    const child = spawn(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded],
+      { stdio: ["pipe", "pipe", "pipe"] }
+    );
+    const stream = wrapChildAsDuplex(child, "Windows direct connect");
+    if (signal) {
+      const onAbort = () => stream.destroy(signal.reason ?? new Error("Operation aborted."));
+      signal.addEventListener("abort", onAbort, { once: true });
+      stream.once("close", () => signal.removeEventListener("abort", onAbort));
+    }
+    return { stream, iface: "win32-physical" };
+  }
+  throw new Error(
+    `Bypass Proxy (Direct Connect) is currently supported on macOS and Windows only (current: ${process.platform}).`
+  );
+}
+
+// src/ssh-backend.mjs
 var OUTPUT_LIMIT_BYTES = 32 * 1024;
 var DEFAULT_TIMEOUT_MS = 12e4;
 var CONNECT_TIMEOUT_MS = 15e3;
@@ -38924,7 +39159,7 @@ function expandHome(filePath) {
   if (filePath.startsWith("~/")) return join3(homedir(), filePath.slice(2));
   return filePath;
 }
-async function buildConnectConfig({ profile, password, passphrase }) {
+async function buildConnectConfig({ profile, password, passphrase }, signal) {
   const { target } = profile;
   const config2 = {
     host: target.host,
@@ -38940,14 +39175,25 @@ async function buildConnectConfig({ profile, password, passphrase }) {
   } else if (process.env.SSH_AUTH_SOCK) {
     config2.agent = process.env.SSH_AUTH_SOCK;
   }
-  return config2;
+  let directStream = null;
+  if (target.bypassProxy) {
+    const direct = await createDirectStream({
+      host: target.host,
+      port: target.port ?? 22,
+      signal,
+      timeoutMs: CONNECT_TIMEOUT_MS
+    });
+    directStream = direct.stream;
+    config2.sock = directStream;
+  }
+  return { config: config2, directStream };
 }
 async function withSshClient(connectionInput, signal, timeoutMs, fn) {
   const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
   if (combinedSignal.aborted) {
     throw combinedSignal.reason ?? new Error("Operation aborted.");
   }
-  const config2 = await buildConnectConfig(connectionInput);
+  const { config: config2, directStream } = await buildConnectConfig(connectionInput, combinedSignal);
   const client = new import_ssh2.Client();
   return new Promise((resolve2, reject) => {
     let settled = false;
@@ -38959,6 +39205,10 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
         client.end();
       } catch {
       }
+      try {
+        directStream?.destroy();
+      } catch {
+      }
       if (err) reject(err);
       else resolve2(value);
     };
@@ -38967,9 +39217,16 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
         client.destroy();
       } catch {
       }
+      try {
+        directStream?.destroy();
+      } catch {
+      }
       finish(combinedSignal.reason ?? new Error("Operation aborted."));
     };
     combinedSignal.addEventListener("abort", onAbort, { once: true });
+    if (directStream) {
+      directStream.once("error", (err) => finish(err));
+    }
     client.once("error", (err) => finish(err));
     client.once("ready", async () => {
       try {
@@ -39100,9 +39357,108 @@ async function uploadRemote(connectionInput, localSourcePath, remoteDestination,
   });
 }
 
+// src/update-checker.mjs
+var DEFAULT_NPM_PACKAGE = "antigravity-server-ops";
+var DEFAULT_REPO = "aqcool/server-ops";
+function compareSemver(a, b) {
+  const parse3 = (v) => String(v || "").trim().replace(/^v/i, "").split("-")[0].split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const pa = parse3(a);
+  const pb = parse3(b);
+  const len = Math.max(pa.length, pb.length, 3);
+  for (let i = 0; i < len; i += 1) {
+    const va = pa[i] ?? 0;
+    const vb = pb[i] ?? 0;
+    if (va > vb) return 1;
+    if (va < vb) return -1;
+  }
+  return 0;
+}
+async function checkForUpdates({
+  currentVersion,
+  npmPackage = DEFAULT_NPM_PACKAGE,
+  repo = DEFAULT_REPO,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = 8e3
+} = {}) {
+  const checkedAt = (/* @__PURE__ */ new Date()).toISOString();
+  const repoUrl = `https://github.com/${repo}`;
+  const npmUrl = `https://www.npmjs.com/package/${npmPackage}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    try {
+      const npmRes = await fetchImpl(`https://registry.npmjs.org/${npmPackage}/latest`, {
+        headers: { Accept: "application/json", "User-Agent": `${npmPackage}/${currentVersion}` },
+        signal: controller.signal
+      });
+      if (npmRes.ok) {
+        const data = await npmRes.json();
+        const latestVersion2 = String(data?.version || "").trim();
+        if (latestVersion2) {
+          return {
+            currentVersion,
+            latestVersion: latestVersion2,
+            hasUpdate: compareSemver(latestVersion2, currentVersion) > 0,
+            releaseUrl: npmUrl,
+            releaseName: `v${latestVersion2}`,
+            checkedAt
+          };
+        }
+      }
+    } catch {
+    }
+    try {
+      const releaseRes = await fetchImpl(`https://api.github.com/repos/${repo}/releases/latest`, {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": `${npmPackage}/${currentVersion}`
+        },
+        signal: controller.signal
+      });
+      if (releaseRes.ok) {
+        const data = await releaseRes.json();
+        const latestVersion2 = String(data?.tag_name || "").replace(/^v/i, "").trim();
+        if (latestVersion2) {
+          return {
+            currentVersion,
+            latestVersion: latestVersion2,
+            hasUpdate: compareSemver(latestVersion2, currentVersion) > 0,
+            releaseUrl: data?.html_url || `${repoUrl}/releases`,
+            releaseName: data?.name || `v${latestVersion2}`,
+            checkedAt
+          };
+        }
+      }
+    } catch {
+    }
+    const pkgRes = await fetchImpl(`https://raw.githubusercontent.com/${repo}/main/package.json`, {
+      headers: { "User-Agent": `${npmPackage}/${currentVersion}` },
+      signal: controller.signal
+    });
+    if (!pkgRes.ok) {
+      throw new Error(`Update check failed (HTTP ${pkgRes.status}).`);
+    }
+    const pkg = await pkgRes.json();
+    const latestVersion = String(pkg?.version || "").trim();
+    if (!latestVersion) {
+      throw new Error("Could not read remote version.");
+    }
+    return {
+      currentVersion,
+      latestVersion,
+      hasUpdate: compareSemver(latestVersion, currentVersion) > 0,
+      releaseUrl: repoUrl,
+      releaseName: `v${latestVersion}`,
+      checkedAt
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // src/server.mjs
 var PICKER_URI = "ui://server-ops/picker.html";
-var VERSION = "0.2.0";
+var VERSION = "0.3.0";
 var resource = {
   uri: PICKER_URI,
   name: "Server Ops",
@@ -39169,10 +39525,21 @@ var tools = [
       password: stringSchema,
       privateKeyPath: stringSchema,
       passphrase: stringSchema,
-      clearPassphrase: booleanSchema
+      clearPassphrase: booleanSchema,
+      bypassProxy: booleanSchema
     },
     ["host", "username", "authType"],
     appOnly
+  ),
+  defineTool(
+    "update_check",
+    "Check npm and GitHub for a newer release of Server Ops.",
+    {},
+    [],
+    {
+      ...appOnly,
+      ...readOnly
+    }
   ),
   defineTool(
     "profile_delete",
@@ -39227,7 +39594,8 @@ var profileSaveSchema = external_exports.object({
   password: external_exports.string().optional(),
   privateKeyPath: external_exports.string().optional(),
   passphrase: external_exports.string().optional(),
-  clearPassphrase: external_exports.boolean().optional()
+  clearPassphrase: external_exports.boolean().optional(),
+  bypassProxy: external_exports.boolean().optional()
 });
 var profileIdSchema = external_exports.object({ profileId: external_exports.string().min(1) });
 var remoteRunSchema = external_exports.object({
@@ -39299,14 +39667,26 @@ async function main(argv = process.argv.slice(2)) {
               text: selectedNames.length > 0 ? `Server Ops opened. Authorized servers: ${selectedNames.join(", ")}.` : "Server Ops opened. Add or select SSH servers to authorize them."
             }
           ],
-          structuredContent: snap
+          structuredContent: { ...snap, version: VERSION }
         };
       }
       if (params.name === "picker_read") {
         const snap = await profileStore.snapshot();
         return {
           content: [{ type: "text", text: "Server profiles loaded." }],
-          structuredContent: snap
+          structuredContent: { ...snap, version: VERSION }
+        };
+      }
+      if (params.name === "update_check") {
+        const info = await checkForUpdates({ currentVersion: VERSION });
+        return {
+          content: [
+            {
+              type: "text",
+              text: info.hasUpdate ? `New version available: v${info.latestVersion} (current v${info.currentVersion}).` : `Up to date (v${info.currentVersion}).`
+            }
+          ],
+          structuredContent: info
         };
       }
       if (params.name === "picker_save") {
