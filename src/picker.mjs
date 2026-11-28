@@ -4,8 +4,10 @@ import {
   applyHostStyleVariables,
 } from "@modelcontextprotocol/ext-apps";
 
+const APP_VERSION = typeof __SERVER_OPS_VERSION__ === "string" ? __SERVER_OPS_VERSION__ : "0.3.1";
+
 const app = new App(
-  { name: "Server Ops", version: "0.3.1" },
+  { name: "Server Ops", version: APP_VERSION },
   { availableDisplayModes: ["inline"] },
   { autoResize: false },
 );
@@ -62,7 +64,25 @@ const I18N = {
     checkingUpdate: "检查中…",
     upToDate: (v) => `已是最新版本 v${v}`,
     updateAvailable: (v) => `发现新版本 v${v}`,
+    updateCardTitle: "发现 Server Ops 新版本",
+    updateDoneTitle: "Server Ops 更新完成",
+    updateFailTitle: "Server Ops 更新失败",
+    updateDefaultSummary: "包含功能优化与问题修复，支持原地一键升级。",
+    updateStepPreparing: "正在准备更新…",
+    updateStepDownloading: "正在下载更新包…",
+    updateStepVerifying: "正在校验安装包完整性…",
+    updateStepInstalling: "正在安装新版本…",
+    updateCompletedReload: (v) => `已安装 v${v}，正在自动重载插件，重新打开面板即可使用新版本。`,
+    updateCompletedManual: (v) => `已安装 v${v}，请在 MCP Servers 设置中刷新或重启客户端后生效。`,
+    updateRolledBack: "更新失败，已自动回滚至当前版本。",
+    updateFailedGeneric: "更新失败，请稍后重试或前往发布页手动升级。",
+    skipVersion: "忽略此版本",
+    remindLater: "稍后提醒",
+    gotIt: "知道了",
+    releaseNotes: "更新说明",
     openRelease: "查看更新",
+    updateNow: "立即升级",
+    retryUpdate: "重试升级",
     updateFailed: (err) => `检查更新失败：${err}`,
   },
   en: {
@@ -111,7 +131,25 @@ const I18N = {
     checkingUpdate: "Checking…",
     upToDate: (v) => `Up to date (v${v})`,
     updateAvailable: (v) => `New version v${v} available`,
-    openRelease: "Open Release",
+    updateCardTitle: "Server Ops update available",
+    updateDoneTitle: "Server Ops updated",
+    updateFailTitle: "Server Ops update failed",
+    updateDefaultSummary: "Includes fixes and improvements with in-place one-click upgrade.",
+    updateStepPreparing: "Preparing update…",
+    updateStepDownloading: "Downloading update package…",
+    updateStepVerifying: "Verifying package integrity…",
+    updateStepInstalling: "Installing new version…",
+    updateCompletedReload: (v) => `Installed v${v}. Reloading plugin automatically — reopen the panel to use it.`,
+    updateCompletedManual: (v) => `Installed v${v}. Refresh Server Ops in MCP Servers settings or restart the client to apply.`,
+    updateRolledBack: "Update failed and automatically rolled back to the current version.",
+    updateFailedGeneric: "Update failed. Retry or open the release page to upgrade manually.",
+    skipVersion: "Skip version",
+    remindLater: "Later",
+    gotIt: "Got it",
+    releaseNotes: "Release notes",
+    openRelease: "View release",
+    updateNow: "Update now",
+    retryUpdate: "Retry",
     updateFailed: (err) => `Update check failed: ${err}`,
   },
 };
@@ -123,9 +161,12 @@ let busy = false;
 let testingId = null;
 let editingProfile = null;
 let authType = "password";
-let appVersion = "0.3.1";
+let appVersion = APP_VERSION;
 let checkingUpdate = false;
 let latestUpdateInfo = null;
+let installState = { status: "idle" };
+let snoozedThisSession = false;
+let updatePollTimer = null;
 
 async function callTool(name, args = {}) {
   const reply = await app.callServerTool({ name, arguments: args });
@@ -185,7 +226,6 @@ function applyStaticLabels() {
   $("save-btn").textContent = t.save;
   $("version-label").textContent = `v${appVersion}`;
   $("check-update-label").textContent = t.checkUpdate;
-  $("update-open-btn").textContent = t.openRelease;
 }
 
 function renderList() {
@@ -350,6 +390,11 @@ async function refresh({ quiet = false } = {}) {
       appVersion = res.version;
       $("version-label").textContent = `v${appVersion}`;
     }
+    if (res?.installState) {
+      installState = res.installState;
+      ensureUpdatePolling();
+      renderUpdateToast();
+    }
     renderList();
     if (!quiet) showBanner();
   } catch (err) {
@@ -357,7 +402,164 @@ async function refresh({ quiet = false } = {}) {
   }
 }
 
-async function runUpdateCheck({ quiet = false } = {}) {
+const ACTIVE_INSTALL_STATUSES = new Set(["preparing", "downloading", "verifying", "installing"]);
+const PROGRESS_BY_STATUS = {
+  preparing: 18,
+  downloading: 48,
+  verifying: 76,
+  installing: 92,
+};
+
+function stopUpdatePolling() {
+  if (updatePollTimer) {
+    clearTimeout(updatePollTimer);
+    updatePollTimer = null;
+  }
+}
+
+function ensureUpdatePolling() {
+  if (!ACTIVE_INSTALL_STATUSES.has(installState?.status)) {
+    stopUpdatePolling();
+    return;
+  }
+  if (updatePollTimer) return;
+  updatePollTimer = setTimeout(async () => {
+    updatePollTimer = null;
+    try {
+      const next = await callTool("update_status");
+      if (next?.status) {
+        installState = next;
+        renderUpdateToast();
+      }
+    } catch {
+      // 若插件已完成替换并正在重载，短暂通信中断属于正常现象
+    }
+    ensureUpdatePolling();
+  }, 700);
+}
+
+function renderUpdateToast() {
+  const toast = $("update-toast");
+  const dot = $("update-toast-dot");
+  const titleEl = $("update-toast-title");
+  const verEl = $("update-toast-ver");
+  const bodyEl = $("update-toast-body");
+  const progWrap = $("update-progress");
+  const progBar = $("update-progress-bar");
+  const skipBtn = $("update-skip-btn");
+  const laterBtn = $("update-later-btn");
+  const notesBtn = $("update-notes-btn");
+  const installBtn = $("update-install-btn");
+  const footerDot = $("update-dot");
+  const footerLabel = $("check-update-label");
+
+  const status = installState?.status || "idle";
+  const isInstalling = ACTIVE_INSTALL_STATUSES.has(status);
+  const isCompleted = status === "completed";
+  const isFailed = status === "failed" || status === "rolled-back";
+  const hasUpdate = Boolean(latestUpdateInfo?.hasUpdate);
+  const targetVer = installState?.version || latestUpdateInfo?.latestVersion || "";
+
+  if (!checkingUpdate) {
+    if (hasUpdate && !isCompleted) {
+      footerDot.hidden = false;
+      footerLabel.textContent = t.updateAvailable(latestUpdateInfo.latestVersion);
+    } else {
+      footerDot.hidden = true;
+      footerLabel.textContent = t.checkUpdate;
+    }
+  }
+
+  const shouldShow =
+    isInstalling ||
+    (isCompleted && !snoozedThisSession) ||
+    (isFailed && !snoozedThisSession) ||
+    (hasUpdate && !latestUpdateInfo?.ignored && !snoozedThisSession);
+
+  if (!shouldShow || !targetVer) {
+    toast.hidden = true;
+    return;
+  }
+
+  toast.hidden = false;
+  verEl.textContent = `v${appVersion} -> v${targetVer}`;
+
+  dot.className = `update-toast-dot${
+    isInstalling ? " working" : isCompleted ? " ok" : isFailed ? " err" : ""
+  }`;
+
+  if (isCompleted) {
+    titleEl.textContent = t.updateDoneTitle;
+    bodyEl.textContent = installState?.reloaded
+      ? t.updateCompletedReload(targetVer)
+      : t.updateCompletedManual(targetVer);
+    progWrap.hidden = true;
+    skipBtn.hidden = true;
+    notesBtn.hidden = true;
+    installBtn.hidden = true;
+    laterBtn.hidden = false;
+    laterBtn.disabled = false;
+    laterBtn.textContent = t.gotIt;
+    return;
+  }
+
+  if (isInstalling) {
+    titleEl.textContent = t.updateCardTitle;
+    const stepText = {
+      preparing: t.updateStepPreparing,
+      downloading: t.updateStepDownloading,
+      verifying: t.updateStepVerifying,
+      installing: t.updateStepInstalling,
+    };
+    bodyEl.textContent = stepText[status] || t.updateStepInstalling;
+    progWrap.hidden = false;
+    progBar.style.width = `${PROGRESS_BY_STATUS[status] || 50}%`;
+    skipBtn.hidden = true;
+    laterBtn.hidden = true;
+    notesBtn.hidden = true;
+    installBtn.hidden = true;
+    return;
+  }
+
+  progWrap.hidden = true;
+
+  if (isFailed) {
+    titleEl.textContent = t.updateFailTitle;
+    const base = status === "rolled-back" ? t.updateRolledBack : t.updateFailedGeneric;
+    bodyEl.textContent = installState?.error ? `${base} (${installState.error})` : base;
+  } else {
+    titleEl.textContent = t.updateCardTitle;
+    bodyEl.textContent = latestUpdateInfo?.summary || t.updateDefaultSummary;
+  }
+
+  const canOpenLink = Boolean(latestUpdateInfo?.releaseUrl && app.getHostCapabilities()?.openLinks);
+  const canInstall = Boolean(latestUpdateInfo?.canInstall);
+
+  skipBtn.hidden = isFailed;
+  skipBtn.disabled = false;
+  skipBtn.textContent = t.skipVersion;
+
+  laterBtn.hidden = false;
+  laterBtn.disabled = false;
+  laterBtn.textContent = t.remindLater;
+
+  if (canInstall) {
+    notesBtn.hidden = !canOpenLink;
+    notesBtn.className = "toast-btn secondary";
+    notesBtn.textContent = t.releaseNotes;
+
+    installBtn.hidden = false;
+    installBtn.disabled = false;
+    installBtn.textContent = isFailed ? t.retryUpdate : t.updateNow;
+  } else {
+    notesBtn.hidden = !canOpenLink;
+    notesBtn.className = "toast-btn primary";
+    notesBtn.textContent = t.openRelease;
+    installBtn.hidden = true;
+  }
+}
+
+async function runUpdateCheck({ quiet = false, force = false } = {}) {
   if (checkingUpdate) return;
   checkingUpdate = true;
   const btn = $("check-update-btn");
@@ -365,34 +567,65 @@ async function runUpdateCheck({ quiet = false } = {}) {
   btn.disabled = true;
   label.textContent = t.checkingUpdate;
   try {
-    const res = await callTool("update_check");
+    const res = await callTool("update_check", force ? { force: true } : {});
     if (res?.currentVersion) {
       appVersion = res.currentVersion;
       $("version-label").textContent = `v${appVersion}`;
     }
-    if (res?.hasUpdate) {
-      latestUpdateInfo = res;
-      $("update-dot").hidden = false;
-      $("update-banner-text").textContent = t.updateAvailable(res.latestVersion);
-      $("update-banner").hidden = false;
-      label.textContent = t.updateAvailable(res.latestVersion);
-    } else {
-      latestUpdateInfo = null;
-      $("update-dot").hidden = true;
-      $("update-banner").hidden = true;
-      label.textContent = t.checkUpdate;
-      if (!quiet) {
-        showBanner(t.upToDate(res?.currentVersion || appVersion), "success");
-      }
+    if (res?.installState) {
+      installState = res.installState;
+      ensureUpdatePolling();
+    }
+    latestUpdateInfo = res?.hasUpdate ? res : null;
+    if (force) {
+      snoozedThisSession = false;
+    }
+    if (!res?.hasUpdate && !quiet) {
+      showBanner(t.upToDate(res?.currentVersion || appVersion), "success");
     }
   } catch (err) {
-    label.textContent = t.checkUpdate;
     if (!quiet) {
       showBanner(t.updateFailed(err instanceof Error ? err.message : String(err)), "error");
     }
   } finally {
     checkingUpdate = false;
     btn.disabled = false;
+    renderUpdateToast();
+  }
+}
+
+async function dismissCurrentUpdate() {
+  const targetVer = latestUpdateInfo?.latestVersion;
+  if (!targetVer) return;
+  try {
+    await callTool("update_dismiss", { version: targetVer });
+    if (latestUpdateInfo) latestUpdateInfo.ignored = true;
+    renderUpdateToast();
+  } catch (err) {
+    showBanner(err instanceof Error ? err.message : t.saveFailed, "error");
+  }
+}
+
+async function startInPlaceUpdate() {
+  const targetVer = installState?.version || latestUpdateInfo?.latestVersion;
+  if (!targetVer) return;
+  snoozedThisSession = false;
+  installState = { status: "preparing", version: targetVer };
+  renderUpdateToast();
+  try {
+    const next = await callTool("update_install", { version: targetVer });
+    if (next?.status) {
+      installState = next;
+    }
+    ensureUpdatePolling();
+    renderUpdateToast();
+  } catch (err) {
+    installState = {
+      status: "failed",
+      version: targetVer,
+      error: err instanceof Error ? err.message : String(err),
+    };
+    renderUpdateToast();
   }
 }
 
@@ -519,6 +752,11 @@ async function start() {
       appVersion = result.structuredContent.version;
       $("version-label").textContent = `v${appVersion}`;
     }
+    if (result?.structuredContent?.installState) {
+      installState = result.structuredContent.installState;
+      ensureUpdatePolling();
+      renderUpdateToast();
+    }
     if (result?.structuredContent?.profiles) {
       profiles = result.structuredContent.profiles;
       selected = new Set(result.structuredContent.serverIds ?? []);
@@ -536,17 +774,20 @@ async function start() {
   $("seg-password").onclick = () => setAuthType("password");
   $("seg-key").onclick = () => setAuthType("privateKey");
   $("profile-form").onsubmit = (e) => void submitForm(e);
-  $("check-update-btn").onclick = () => void runUpdateCheck({ quiet: false });
-  $("update-dismiss-btn").onclick = () => {
-    $("update-banner").hidden = true;
+  $("check-update-btn").onclick = () => void runUpdateCheck({ quiet: false, force: true });
+  $("update-skip-btn").onclick = () => void dismissCurrentUpdate();
+  $("update-later-btn").onclick = () => {
+    snoozedThisSession = true;
+    renderUpdateToast();
   };
-  $("update-open-btn").onclick = () => {
+  $("update-notes-btn").onclick = () => {
     const url = latestUpdateInfo?.releaseUrl;
     if (!url) return;
     if (app.getHostCapabilities()?.openLinks) {
       void app.openLink({ url }).catch(() => {});
     }
   };
+  $("update-install-btn").onclick = () => void startInPlaceUpdate();
 
   await app.connect();
   t = app.getHostContext()?.locale?.startsWith("zh") ? I18N.zh : I18N.en;

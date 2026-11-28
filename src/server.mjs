@@ -1,7 +1,7 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -14,10 +14,11 @@ import { z } from "zod";
 import { createCredentialStore } from "./credential-store.mjs";
 import { createProfileStore } from "./profile-store.mjs";
 import { execRemote, testConnection, uploadRemote } from "./ssh-backend.mjs";
-import { checkForUpdates } from "./update-checker.mjs";
+import { createUpdateManager } from "./update-manager.mjs";
 
 const PICKER_URI = "ui://server-ops/picker.html";
-const VERSION = "0.3.1";
+const VERSION = typeof __SERVER_OPS_VERSION__ === "string" ? __SERVER_OPS_VERSION__ : "0.3.1";
+const DEFAULT_INSTALL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const resource = {
   uri: PICKER_URI,
@@ -98,13 +99,37 @@ const tools = [
   defineTool(
     "update_check",
     "Check npm and GitHub for a newer release of Server Ops.",
-    {},
+    {
+      force: booleanSchema,
+    },
     [],
     {
       ...appOnly,
       ...readOnly,
     },
   ),
+  defineTool(
+    "update_dismiss",
+    "Ignore notifications for a specific Server Ops version.",
+    {
+      version: stringSchema,
+    },
+    ["version"],
+    appOnly,
+  ),
+  defineTool(
+    "update_install",
+    "Download, verify, and install a newer release of Server Ops in place.",
+    {
+      version: stringSchema,
+    },
+    ["version"],
+    appOnly,
+  ),
+  defineTool("update_status", "Read current in-place update progress.", {}, [], {
+    ...appOnly,
+    ...readOnly,
+  }),
   defineTool(
     "profile_delete",
     "Delete a saved SSH server profile and its stored credentials.",
@@ -163,6 +188,8 @@ const profileSaveSchema = z.object({
   bypassProxy: z.boolean().optional(),
 });
 const profileIdSchema = z.object({ profileId: z.string().min(1) });
+const updateCheckSchema = z.object({ force: z.boolean().optional() });
+const updateVersionSchema = z.object({ version: z.string() });
 const remoteRunSchema = z.object({
   serverId: z.string().min(1),
   command: z.string().trim().min(1).max(16_384),
@@ -178,10 +205,12 @@ function parseCliArgs(argv) {
   const options = {
     dataDir: process.env.SERVER_OPS_DATA_DIR || join(homedir(), ".config", "server-ops"),
     workspaceDir: process.env.SERVER_OPS_WORKSPACE || "",
+    installDir: process.env.SERVER_OPS_PLUGIN_DIR || DEFAULT_INSTALL_DIR,
   };
   for (const arg of argv) {
     if (arg.startsWith("--data-dir=")) options.dataDir = arg.slice("--data-dir=".length);
     else if (arg.startsWith("--workspace=")) options.workspaceDir = arg.slice("--workspace=".length);
+    else if (arg.startsWith("--plugin-dir=")) options.installDir = arg.slice("--plugin-dir=".length);
   }
   return options;
 }
@@ -214,6 +243,11 @@ export async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
   const credentialStore = createCredentialStore(options.dataDir);
   const profileStore = createProfileStore(options.dataDir, credentialStore);
+  const updateManager = createUpdateManager({
+    dataDir: options.dataDir,
+    installDir: options.installDir,
+    currentVersion: VERSION,
+  });
 
   const server = new Server(
     { name: "server-ops", version: VERSION },
@@ -239,7 +273,10 @@ export async function main(argv = process.argv.slice(2)) {
       }
 
       if (params.name === "open_server_picker") {
-        const snap = await profileStore.snapshot();
+        const [snap, installState] = await Promise.all([
+          profileStore.snapshot(),
+          updateManager.status(),
+        ]);
         const selectedNames = snap.profiles
           .filter((p) => snap.serverIds.includes(p.id))
           .map((p) => p.name);
@@ -253,20 +290,24 @@ export async function main(argv = process.argv.slice(2)) {
                   : "Server Ops opened. Add or select SSH servers to authorize them.",
             },
           ],
-          structuredContent: { ...snap, version: VERSION },
+          structuredContent: { ...snap, version: VERSION, installState },
         };
       }
 
       if (params.name === "picker_read") {
-        const snap = await profileStore.snapshot();
+        const [snap, installState] = await Promise.all([
+          profileStore.snapshot(),
+          updateManager.status(),
+        ]);
         return {
           content: [{ type: "text", text: "Server profiles loaded." }],
-          structuredContent: { ...snap, version: VERSION },
+          structuredContent: { ...snap, version: VERSION, installState },
         };
       }
 
       if (params.name === "update_check") {
-        const info = await checkForUpdates({ currentVersion: VERSION });
+        const { force } = updateCheckSchema.parse(params.arguments ?? {});
+        const info = await updateManager.check({ force: Boolean(force) });
         return {
           content: [
             {
@@ -277,6 +318,32 @@ export async function main(argv = process.argv.slice(2)) {
             },
           ],
           structuredContent: info,
+        };
+      }
+
+      if (params.name === "update_dismiss") {
+        const { version } = updateVersionSchema.parse(params.arguments ?? {});
+        const result = await updateManager.dismiss(version);
+        return {
+          content: [{ type: "text", text: "Update notification preference saved." }],
+          structuredContent: result,
+        };
+      }
+
+      if (params.name === "update_install") {
+        const { version } = updateVersionSchema.parse(params.arguments ?? {});
+        const state = await updateManager.startInstall(version);
+        return {
+          content: [{ type: "text", text: `Update ${state.status} for v${state.version}.` }],
+          structuredContent: state,
+        };
+      }
+
+      if (params.name === "update_status") {
+        const state = await updateManager.status();
+        return {
+          content: [{ type: "text", text: `Update status: ${state.status}.` }],
+          structuredContent: state,
         };
       }
 

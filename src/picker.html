@@ -613,24 +613,182 @@
     border-color: color-mix(in srgb, var(--success) 28%, transparent);
   }
 
-  .update-banner {
+  .update-toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 90;
+    width: 356px;
+    max-width: calc(100vw - 32px);
+    padding: 13px 14px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 12px;
+    animation: toastIn 0.18s ease-out;
+  }
+
+  :root[data-theme="dark"] .update-toast {
+    background: var(--bg-subtle);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  body.compact .update-toast {
+    position: static;
+    width: 100%;
+    max-width: none;
+    margin-bottom: 10px;
+    box-shadow: none;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.82); }
+  }
+
+  .update-toast-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 14px;
-    padding: 9px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-    background: var(--accent-soft);
-    font-size: 12.5px;
+    gap: 8px;
   }
 
-  .update-banner-actions {
+  .update-toast-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .update-toast-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    flex: none;
+    background: var(--accent);
+  }
+
+  .update-toast-dot.working {
+    background: var(--accent);
+    animation: pulseDot 1.1s ease-in-out infinite;
+  }
+
+  .update-toast-dot.ok { background: var(--success); }
+  .update-toast-dot.err { background: var(--danger); }
+
+  .update-toast-ver {
+    flex: none;
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  :root[data-theme="dark"] .update-toast-ver {
+    background: var(--bg-hover);
+  }
+
+  .update-toast-body {
+    line-height: 1.5;
+    color: var(--text-muted);
+    word-break: break-word;
+  }
+
+  .update-progress {
+    height: 3px;
+    width: 100%;
+    border-radius: 999px;
+    background: var(--bg-hover);
+    overflow: hidden;
+  }
+
+  .update-progress-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+
+  .update-toast-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    padding-top: 2px;
+  }
+
+  .toast-btn {
+    height: 27px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+  }
+
+  .toast-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .toast-btn.ghost {
+    padding: 0 8px;
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .toast-btn.ghost:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+
+  .toast-btn.secondary {
+    background: var(--bg-subtle);
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  .toast-btn.secondary:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  .toast-btn.primary {
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  :root[data-theme="dark"] .toast-btn.primary {
+    color: #0e141f;
+  }
+
+  .toast-btn.primary:hover:not(:disabled) {
+    opacity: 0.9;
   }
 
   .footer-bar {
@@ -691,11 +849,23 @@
     <button class="btn btn-primary btn-add" id="add-btn" type="button"></button>
   </header>
 
-  <div class="update-banner" id="update-banner" role="status" hidden>
-    <span id="update-banner-text"></span>
-    <div class="update-banner-actions">
-      <button class="btn btn-primary" id="update-open-btn" type="button" style="height:26px;padding:0 10px;font-size:12px;"></button>
-      <button class="btn btn-icon" id="update-dismiss-btn" type="button" aria-label="Dismiss">✕</button>
+  <div class="update-toast" id="update-toast" role="status" hidden>
+    <div class="update-toast-head">
+      <div class="update-toast-title-wrap">
+        <span class="update-toast-dot" id="update-toast-dot"></span>
+        <span id="update-toast-title"></span>
+      </div>
+      <span class="update-toast-ver" id="update-toast-ver"></span>
+    </div>
+    <div class="update-toast-body" id="update-toast-body"></div>
+    <div class="update-progress" id="update-progress" hidden>
+      <div class="update-progress-bar" id="update-progress-bar"></div>
+    </div>
+    <div class="update-toast-actions" id="update-toast-actions">
+      <button class="toast-btn ghost" id="update-skip-btn" type="button"></button>
+      <button class="toast-btn ghost" id="update-later-btn" type="button"></button>
+      <button class="toast-btn secondary" id="update-notes-btn" type="button"></button>
+      <button class="toast-btn primary" id="update-install-btn" type="button"></button>
     </div>
   </div>
 

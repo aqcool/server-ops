@@ -2987,7 +2987,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve2.call(this, root, ref);
+      let _sch = resolve3.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3014,7 +3014,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve2(root, ref) {
+    function resolve3(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3125,14 +3125,14 @@ var require_utils = __commonJS({
         BYTE_HEX[i] = "%" + HEX_DIGITS[i >> 4] + HEX_DIGITS[i & 15];
       }
     }
-    function percentEncodeNonAscii(cp) {
-      if (cp < 2048) {
-        return BYTE_HEX[192 | cp >> 6] + BYTE_HEX[128 | cp & 63];
+    function percentEncodeNonAscii(cp2) {
+      if (cp2 < 2048) {
+        return BYTE_HEX[192 | cp2 >> 6] + BYTE_HEX[128 | cp2 & 63];
       }
-      if (cp < 65536) {
-        return BYTE_HEX[224 | cp >> 12] + BYTE_HEX[128 | cp >> 6 & 63] + BYTE_HEX[128 | cp & 63];
+      if (cp2 < 65536) {
+        return BYTE_HEX[224 | cp2 >> 12] + BYTE_HEX[128 | cp2 >> 6 & 63] + BYTE_HEX[128 | cp2 & 63];
       }
-      return BYTE_HEX[240 | cp >> 18] + BYTE_HEX[128 | cp >> 12 & 63] + BYTE_HEX[128 | cp >> 6 & 63] + BYTE_HEX[128 | cp & 63];
+      return BYTE_HEX[240 | cp2 >> 18] + BYTE_HEX[128 | cp2 >> 12 & 63] + BYTE_HEX[128 | cp2 >> 6 & 63] + BYTE_HEX[128 | cp2 & 63];
     }
     function stringArrayToHexStripped(input) {
       let acc = "";
@@ -3527,8 +3527,8 @@ var require_utils = __commonJS({
     function encodeFragment(input) {
       return encodeComponent(input, isQueryFragmentCharacter);
     }
-    function isEscapeSafe(cp) {
-      return cp >= 48 && cp <= 57 || cp >= 65 && cp <= 90 || cp >= 97 && cp <= 122 || cp === 42 || cp === 43 || cp === 45 || cp === 46 || cp === 47 || cp === 64 || cp === 95;
+    function isEscapeSafe(cp2) {
+      return cp2 >= 48 && cp2 <= 57 || cp2 >= 65 && cp2 <= 90 || cp2 >= 97 && cp2 <= 122 || cp2 === 42 || cp2 === 43 || cp2 === 45 || cp2 === 46 || cp2 === 47 || cp2 === 64 || cp2 === 95;
     }
     function normalizeQueryFragmentEncoding(input) {
       let output = "";
@@ -3878,7 +3878,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve2(baseURI, relativeURI, options) {
+    function resolve3(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -4269,7 +4269,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve2,
+      resolve: resolve3,
       resolveComponent,
       equal,
       serialize,
@@ -13735,7 +13735,7 @@ var require_crypto = __commonJS({
       MAC_INFO,
       bindingAvailable: !!binding,
       init: (() => {
-        return new Promise(async (resolve2, reject) => {
+        return new Promise(async (resolve3, reject) => {
           try {
             POLY1305_WASM_MODULE = await require_poly1305()();
             POLY1305_RESULT_MALLOC = POLY1305_WASM_MODULE._malloc(16);
@@ -13747,7 +13747,7 @@ var require_crypto = __commonJS({
           } catch (ex) {
             return reject(ex);
           }
-          resolve2();
+          resolve3();
         });
       })(),
       NullCipher,
@@ -13765,7 +13765,7 @@ var require_keyParser = __commonJS({
     var {
       createDecipheriv: createDecipheriv2,
       createECDH,
-      createHash,
+      createHash: createHash2,
       createHmac,
       createSign,
       createVerify,
@@ -14453,11 +14453,11 @@ ${formatted}-----END ${type} KEY-----`;
                 );
               }
               const ivSlice = bufferSlice(cipherIV, 0, 8);
-              let cipherKey = createHash("md5").update(passphrase).update(ivSlice).digest();
+              let cipherKey = createHash2("md5").update(passphrase).update(ivSlice).digest();
               while (cipherKey.length < encInfo.keyLen) {
                 cipherKey = combineBuffers(
                   cipherKey,
-                  createHash("md5").update(cipherKey).update(passphrase).update(ivSlice).digest()
+                  createHash2("md5").update(cipherKey).update(passphrase).update(ivSlice).digest()
                 );
               }
               if (cipherKey.length > encInfo.keyLen)
@@ -14622,8 +14622,8 @@ ${formatted}-----END ${type} KEY-----`;
         if (encrypted) {
           const encInfo = CIPHER_INFO[cipherName];
           let cipherKey = combineBuffers(
-            createHash("sha1").update(PPK_PP1).update(passphrase).digest(),
-            createHash("sha1").update(PPK_PP2).update(passphrase).digest()
+            createHash2("sha1").update(PPK_PP1).update(passphrase).digest(),
+            createHash2("sha1").update(PPK_PP2).update(passphrase).digest()
           );
           if (cipherKey.length > encInfo.keyLen)
             cipherKey = bufferSlice(cipherKey, 0, encInfo.keyLen);
@@ -14663,7 +14663,7 @@ ${formatted}-----END ${type} KEY-----`;
           passphrase = EMPTY_PASSPHRASE;
         const calcMAC = createHmac(
           "sha1",
-          createHash("sha1").update("putty-private-key-file-mac-key").update(passphrase).digest()
+          createHash2("sha1").update("putty-private-key-file-mac-key").update(passphrase).digest()
         ).update(macData).digest("hex");
         if (calcMAC !== mac) {
           if (encrypted) {
@@ -15005,8 +15005,8 @@ var require_agent = __commonJS({
     "use strict";
     var { Socket } = __require("net");
     var { Duplex: Duplex2 } = __require("stream");
-    var { resolve: resolve2 } = __require("path");
-    var { readFile: readFile5 } = __require("fs");
+    var { resolve: resolve3 } = __require("path");
+    var { readFile: readFile6 } = __require("fs");
     var { execFile: execFile3, spawn: spawn2 } = __require("child_process");
     var { isParsedKey, parseKey } = require_keyParser();
     var {
@@ -15141,7 +15141,7 @@ var require_agent = __commonJS({
       const RET_ERR_BINSTDIN = 13;
       const RET_ERR_BINSTDOUT = 14;
       const RET_ERR_BADLEN = 15;
-      const EXEPATH = resolve2(__dirname, "..", "util/pagent.exe");
+      const EXEPATH = resolve3(__dirname, "..", "util/pagent.exe");
       const ERROR = {
         [RET_ERR_BADARGS]: new Error("Invalid pagent.exe arguments"),
         [RET_ERR_UNAVAILABLE]: new Error("Pageant is not running"),
@@ -15224,7 +15224,7 @@ var require_agent = __commonJS({
           cb = once(cb);
           let socketPath = this.socketPath;
           let triedCygpath = false;
-          readFile5(socketPath, function readCygsocket(err, data) {
+          readFile6(socketPath, function readCygsocket(err, data) {
             if (err) {
               if (triedCygpath)
                 return cb(new Error("Invalid cygwin unix socket path"));
@@ -15233,7 +15233,7 @@ var require_agent = __commonJS({
                   return cb(new Error("Invalid cygwin unix socket path"));
                 triedCygpath = true;
                 socketPath = stdout.toString().replace(/[\r\n]/g, "");
-                readFile5(socketPath, readCygsocket);
+                readFile6(socketPath, readCygsocket);
               });
               return;
             }
@@ -16985,7 +16985,7 @@ var require_kex = __commonJS({
       createDiffieHellman,
       createDiffieHellmanGroup,
       createECDH,
-      createHash,
+      createHash: createHash2,
       createPublicKey,
       diffieHellman,
       generateKeyPairSync,
@@ -17411,7 +17411,7 @@ var require_kex = __commonJS({
               DISCONNECT_REASON.KEY_EXCHANGE_FAILED
             );
           }
-          const hash = createHash(this.hashName);
+          const hash = createHash2(this.hashName);
           hashString(hash, isServer ? this._remoteIdentRaw : this._identRaw);
           hashString(hash, isServer ? this._identRaw : this._remoteIdentRaw);
           hashString(hash, isServer ? this._remoteKexinit : this._kexinit);
@@ -18419,9 +18419,9 @@ var require_kex = __commonJS({
     function generateKEXVal(len, hashName, secret, exchangeHash, sessionID, char) {
       let ret;
       if (len) {
-        let digest = createHash(hashName).update(secret).update(exchangeHash).update(char).update(sessionID).digest();
+        let digest = createHash2(hashName).update(secret).update(exchangeHash).update(char).update(sessionID).digest();
         while (digest.length < len) {
-          const chunk = createHash(hashName).update(secret).update(exchangeHash).update(digest).digest();
+          const chunk = createHash2(hashName).update(secret).update(exchangeHash).update(digest).digest();
           const extended = Buffer.allocUnsafe(digest.length + chunk.length);
           extended.set(digest, 0);
           extended.set(chunk, digest.length);
@@ -23856,7 +23856,7 @@ var require_client = __commonJS({
   "node_modules/.pnpm/ssh2@1.17.0/node_modules/ssh2/lib/client.js"(exports, module) {
     "use strict";
     var {
-      createHash,
+      createHash: createHash2,
       getHashes,
       randomFillSync
     } = __require("crypto");
@@ -24078,7 +24078,7 @@ var require_client = __commonJS({
           }
           hostVerifier = (key, verify) => {
             if (hashAlgo)
-              key = createHash(hashAlgo).update(key).digest("hex");
+              key = createHash2(hashAlgo).update(key).digest("hex");
             const ret = hashCb(key, verify);
             if (ret !== void 0)
               verify(ret);
@@ -27379,9 +27379,10 @@ var require_lib2 = __commonJS({
 });
 
 // src/server.mjs
-import { readFile as readFile4, realpath, stat } from "node:fs/promises";
+import { readFile as readFile5, realpath, stat } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { isAbsolute, join as join4, relative, resolve, sep } from "node:path";
+import { dirname as dirname4, isAbsolute, join as join5, relative, resolve as resolve2, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -37292,7 +37293,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -37309,7 +37310,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -37387,7 +37388,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve2(parseResult.data);
+            resolve3(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -37649,12 +37650,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve2, interval);
+      const timeoutId = setTimeout(resolve3, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -38530,12 +38531,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve2) => {
+    return new Promise((resolve3) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve2();
+        resolve3();
       } else {
-        this._stdout.once("drain", resolve2);
+        this._stdout.once("drain", resolve3);
       }
     });
   }
@@ -39201,7 +39202,7 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
   }
   const { config: config2, directStream } = await buildConnectConfig(connectionInput, combinedSignal);
   const client = new import_ssh2.Client();
-  return new Promise((resolve2, reject) => {
+  return new Promise((resolve3, reject) => {
     let settled = false;
     const finish = (err, value) => {
       if (settled) return;
@@ -39216,7 +39217,7 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
       } catch {
       }
       if (err) reject(err);
-      else resolve2(value);
+      else resolve3(value);
     };
     const onAbort = () => {
       try {
@@ -39246,7 +39247,7 @@ async function withSshClient(connectionInput, signal, timeoutMs, fn) {
   });
 }
 function collectStream(stream) {
-  return new Promise((resolve2) => {
+  return new Promise((resolve3) => {
     let remaining = OUTPUT_LIMIT_BYTES;
     const chunks = [];
     stream.on("data", (chunk) => {
@@ -39256,13 +39257,13 @@ function collectStream(stream) {
     });
     stream.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
-      resolve2(remaining < 0 ? `${text}
+      resolve3(remaining < 0 ? `${text}
 [output truncated]` : text);
     });
   });
 }
 function execOnClient(client, command, signal) {
-  return new Promise((resolve2, reject) => {
+  return new Promise((resolve3, reject) => {
     client.exec(command, (err, channel) => {
       if (err) return reject(err);
       const stdoutPromise = collectStream(channel);
@@ -39279,30 +39280,30 @@ function execOnClient(client, command, signal) {
         signal?.removeEventListener("abort", onAbort);
         if (signal?.aborted) return;
         const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise]);
-        resolve2({ stdout, stderr, exitCode: typeof code === "number" ? code : -1 });
+        resolve3({ stdout, stderr, exitCode: typeof code === "number" ? code : -1 });
       });
     });
   });
 }
 function sftpOnClient(client) {
-  return new Promise((resolve2, reject) => {
+  return new Promise((resolve3, reject) => {
     client.sftp((err, sftp) => {
       if (err) reject(err);
-      else resolve2(sftp);
+      else resolve3(sftp);
     });
   });
 }
 function sftpFastPut(sftp, localPath, remotePath) {
-  return new Promise((resolve2, reject) => {
+  return new Promise((resolve3, reject) => {
     sftp.fastPut(localPath, remotePath, (err) => {
       if (err) reject(err);
-      else resolve2();
+      else resolve3();
     });
   });
 }
 function sftpExists(sftp, remotePath) {
-  return new Promise((resolve2) => {
-    sftp.stat(remotePath, (err) => resolve2(!err));
+  return new Promise((resolve3) => {
+    sftp.stat(remotePath, (err) => resolve3(!err));
   });
 }
 async function testConnection(connectionInput, { signal } = {}) {
@@ -39329,8 +39330,8 @@ async function uploadRemote(connectionInput, localSourcePath, remoteDestination,
   return withSshClient(connectionInput, signal, DEFAULT_TIMEOUT_MS, async (client, sig) => {
     const sftp = await sftpOnClient(client);
     if (overwrite === "skip" || overwrite === "error") {
-      const exists = await sftpExists(sftp, remoteDestination);
-      if (exists) {
+      const exists2 = await sftpExists(sftp, remoteDestination);
+      if (exists2) {
         if (overwrite === "skip") {
           return { destination: remoteDestination, skipped: true };
         }
@@ -39363,6 +39364,12 @@ async function uploadRemote(connectionInput, localSourcePath, remoteDestination,
   });
 }
 
+// src/update-manager.mjs
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+import { access, chmod, cp, mkdir as mkdir3, readFile as readFile4, rename as rename3, rm, unlink as unlink3, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname as dirname3, join as join4, posix as posix2, resolve } from "node:path";
+import { gunzipSync } from "node:zlib";
+
 // src/update-checker.mjs
 var DEFAULT_NPM_PACKAGE = "antigravity-server-ops";
 var DEFAULT_REPO = "aqcool/server-ops";
@@ -39379,34 +39386,108 @@ function compareSemver(a, b) {
   }
   return 0;
 }
+function extractReleaseSummary(markdown, maxLength = 140) {
+  if (typeof markdown !== "string" || !markdown.trim()) return "";
+  const lines = [];
+  for (const raw of markdown.split(/\r?\n/)) {
+    const line = raw.trim().replace(/^#{1,6}\s+/, "").replace(/^[-*+]\s+/, "").replace(/^\d+\.\s+/, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[`*_~]/g, "").trim();
+    if (!line) continue;
+    if (/^(what'?s changed|full changelog|changelog|release notes|更新日志|更新内容)[:：]?$/i.test(line)) {
+      continue;
+    }
+    if (/^https?:\/\//i.test(line)) continue;
+    lines.push(line);
+    if (lines.join("\uFF1B").length >= maxLength) break;
+  }
+  const joined = lines.join("\uFF1B");
+  if (joined.length <= maxLength) return joined;
+  return `${joined.slice(0, maxLength - 1).trimEnd()}\u2026`;
+}
+function parseNpmDist(dist) {
+  const tarballUrl = typeof dist?.tarball === "string" ? dist.tarball.trim() : "";
+  const integrity = typeof dist?.integrity === "string" ? dist.integrity.trim() : "";
+  const shasum = typeof dist?.shasum === "string" ? dist.shasum.trim().toLowerCase() : "";
+  if (!tarballUrl) return null;
+  return {
+    tarballUrl,
+    ...integrity ? { integrity } : {},
+    ...shasum ? { shasum } : {}
+  };
+}
+async function fetchGithubReleaseMeta({ repo, version: version2, userAgent, fetchImpl, signal }) {
+  try {
+    const res = await fetchImpl(
+      `https://api.github.com/repos/${repo}/releases/tags/v${encodeURIComponent(version2)}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": userAgent
+        },
+        signal
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      releaseUrl: typeof data?.html_url === "string" ? data.html_url : "",
+      releaseName: typeof data?.name === "string" ? data.name : "",
+      notes: typeof data?.body === "string" ? data.body : ""
+    };
+  } catch {
+    return null;
+  }
+}
 async function checkForUpdates({
   currentVersion,
   npmPackage = DEFAULT_NPM_PACKAGE,
   repo = DEFAULT_REPO,
   fetchImpl = globalThis.fetch,
-  timeoutMs = 8e3
+  timeoutMs = 8e3,
+  includeReleaseNotes = true
 } = {}) {
   const checkedAt = (/* @__PURE__ */ new Date()).toISOString();
   const repoUrl = `https://github.com/${repo}`;
   const npmUrl = `https://www.npmjs.com/package/${npmPackage}`;
+  const userAgent = `${npmPackage}/${currentVersion}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     try {
       const npmRes = await fetchImpl(`https://registry.npmjs.org/${npmPackage}/latest`, {
-        headers: { Accept: "application/json", "User-Agent": `${npmPackage}/${currentVersion}` },
+        headers: { Accept: "application/json", "User-Agent": userAgent },
         signal: controller.signal
       });
       if (npmRes.ok) {
         const data = await npmRes.json();
         const latestVersion2 = String(data?.version || "").trim();
         if (latestVersion2) {
+          const hasUpdate = compareSemver(latestVersion2, currentVersion) > 0;
+          const dist = parseNpmDist(data?.dist);
+          let releaseUrl = npmUrl;
+          let releaseName = `v${latestVersion2}`;
+          let summary = "";
+          if (hasUpdate && includeReleaseNotes) {
+            const notesSignal = AbortSignal.any([controller.signal, AbortSignal.timeout(3e3)]);
+            const gh = await fetchGithubReleaseMeta({
+              repo,
+              version: latestVersion2,
+              userAgent,
+              fetchImpl,
+              signal: notesSignal
+            });
+            if (gh?.releaseUrl) releaseUrl = gh.releaseUrl;
+            if (gh?.releaseName) releaseName = gh.releaseName;
+            if (gh?.notes) summary = extractReleaseSummary(gh.notes);
+          }
           return {
             currentVersion,
             latestVersion: latestVersion2,
-            hasUpdate: compareSemver(latestVersion2, currentVersion) > 0,
-            releaseUrl: npmUrl,
-            releaseName: `v${latestVersion2}`,
+            hasUpdate,
+            releaseUrl,
+            releaseName,
+            summary,
+            source: "npm",
+            dist,
             checkedAt
           };
         }
@@ -39417,7 +39498,7 @@ async function checkForUpdates({
       const releaseRes = await fetchImpl(`https://api.github.com/repos/${repo}/releases/latest`, {
         headers: {
           Accept: "application/vnd.github+json",
-          "User-Agent": `${npmPackage}/${currentVersion}`
+          "User-Agent": userAgent
         },
         signal: controller.signal
       });
@@ -39431,6 +39512,9 @@ async function checkForUpdates({
             hasUpdate: compareSemver(latestVersion2, currentVersion) > 0,
             releaseUrl: data?.html_url || `${repoUrl}/releases`,
             releaseName: data?.name || `v${latestVersion2}`,
+            summary: extractReleaseSummary(data?.body || ""),
+            source: "github",
+            dist: null,
             checkedAt
           };
         }
@@ -39438,7 +39522,7 @@ async function checkForUpdates({
     } catch {
     }
     const pkgRes = await fetchImpl(`https://raw.githubusercontent.com/${repo}/main/package.json`, {
-      headers: { "User-Agent": `${npmPackage}/${currentVersion}` },
+      headers: { "User-Agent": userAgent },
       signal: controller.signal
     });
     if (!pkgRes.ok) {
@@ -39455,6 +39539,9 @@ async function checkForUpdates({
       hasUpdate: compareSemver(latestVersion, currentVersion) > 0,
       releaseUrl: repoUrl,
       releaseName: `v${latestVersion}`,
+      summary: "",
+      source: "github-raw",
+      dist: null,
       checkedAt
     };
   } finally {
@@ -39462,9 +39549,425 @@ async function checkForUpdates({
   }
 }
 
+// src/update-manager.mjs
+var MAX_TARBALL_BYTES = 16 * 1024 * 1024;
+var MAX_EXTRACTED_BYTES = 32 * 1024 * 1024;
+var STALE_INSTALL_MS = 18e4;
+var ALLOWED_TARBALL_HOSTS = /* @__PURE__ */ new Set(["registry.npmjs.org"]);
+var REQUIRED_PLUGIN_FILES = [
+  "plugin.json",
+  "mcp_config.json",
+  "dist/server.mjs",
+  "dist/picker.html"
+];
+function isAllowedPluginRelativePath(relPath) {
+  if (relPath === "plugin.json" || relPath === "mcp_config.json" || relPath === "dist/server.mjs" || relPath === "dist/picker.html") {
+    return true;
+  }
+  return relPath.startsWith("skills/") && !relPath.endsWith("/");
+}
+function readTarString(buf, start, length) {
+  const slice = buf.subarray(start, start + length);
+  const zero = slice.indexOf(0);
+  return slice.subarray(0, zero === -1 ? slice.length : zero).toString("utf8");
+}
+function readTarOctal(buf, start, length) {
+  const raw = readTarString(buf, start, length).trim();
+  if (!raw) return 0;
+  const parsed = Number.parseInt(raw, 8);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error("Invalid tar entry size.");
+  }
+  return parsed;
+}
+function normalizeTarPath(rawName) {
+  const cleaned = rawName.replaceAll("\\", "/").replace(/^\.\//, "");
+  const stripped = cleaned.startsWith("package/") ? cleaned.slice("package/".length) : cleaned;
+  const normalized = posix2.normalize(stripped);
+  if (!normalized || normalized === "." || normalized === ".." || normalized.startsWith("/") || normalized.startsWith("../")) {
+    return null;
+  }
+  return normalized;
+}
+function extractPluginFilesFromTgz(tgzBuffer) {
+  const tar = gunzipSync(tgzBuffer, { maxOutputLength: MAX_EXTRACTED_BYTES });
+  const files = /* @__PURE__ */ new Map();
+  let offset = 0;
+  let totalSize = 0;
+  let pendingLongName = null;
+  while (offset + 512 <= tar.length) {
+    const header = tar.subarray(offset, offset + 512);
+    let isZeroBlock = true;
+    for (let i = 0; i < 512; i += 1) {
+      if (header[i] !== 0) {
+        isZeroBlock = false;
+        break;
+      }
+    }
+    if (isZeroBlock) break;
+    const namePart = readTarString(header, 0, 100);
+    const size = readTarOctal(header, 124, 12);
+    const typeFlag = String.fromCharCode(header[156] || 48);
+    const prefix = readTarString(header, 345, 155);
+    const rawName = pendingLongName ?? (prefix ? `${prefix}/${namePart}` : namePart);
+    pendingLongName = null;
+    offset += 512;
+    const dataEnd = offset + size;
+    if (dataEnd > tar.length) {
+      throw new Error("Truncated tar archive.");
+    }
+    const content = Buffer.from(tar.subarray(offset, dataEnd));
+    offset += Math.ceil(size / 512) * 512;
+    if (typeFlag === "L") {
+      pendingLongName = content.toString("utf8").replace(/\0+$/, "");
+      continue;
+    }
+    if (typeFlag === "x" || typeFlag === "g") {
+      const text = content.toString("utf8");
+      const match = text.match(/\d+\s+path=([^\n]+)\n/);
+      if (match?.[1]) pendingLongName = match[1];
+      continue;
+    }
+    if (typeFlag !== "0" && typeFlag !== "\0") {
+      continue;
+    }
+    const relPath = normalizeTarPath(rawName);
+    if (!relPath || !isAllowedPluginRelativePath(relPath)) continue;
+    totalSize += content.length;
+    if (totalSize > MAX_EXTRACTED_BYTES) {
+      throw new Error("Extracted plugin package exceeds size limit.");
+    }
+    files.set(relPath, content);
+  }
+  for (const required2 of REQUIRED_PLUGIN_FILES) {
+    if (!files.has(required2)) {
+      throw new Error(`Update package is missing required file: ${required2}`);
+    }
+  }
+  return files;
+}
+function verifyTarballDigest(buffer, dist) {
+  if (dist?.integrity) {
+    const match = String(dist.integrity).match(/^(sha512|sha384|sha256)-([A-Za-z0-9+/=]+)$/);
+    if (!match) {
+      throw new Error("Unsupported package integrity format.");
+    }
+    const [, algo, expectedB64] = match;
+    const actualB64 = createHash(algo).update(buffer).digest("base64");
+    if (actualB64 !== expectedB64) {
+      throw new Error("Package integrity verification failed.");
+    }
+    return;
+  }
+  if (dist?.shasum && /^[a-f0-9]{40}$/i.test(dist.shasum)) {
+    const actualHex = createHash("sha1").update(buffer).digest("hex");
+    if (actualHex.toLowerCase() !== dist.shasum.toLowerCase()) {
+      throw new Error("Package shasum verification failed.");
+    }
+    return;
+  }
+  throw new Error("Update package is missing integrity metadata.");
+}
+async function exists(targetPath) {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function isManagedPluginDir(installDir) {
+  if (!installDir) return false;
+  const resolved = resolve(installDir);
+  if (!await exists(join4(resolved, "plugin.json"))) return false;
+  if (await exists(join4(resolved, ".git"))) return false;
+  return true;
+}
+async function downloadTarball(tarballUrl, fetchImpl, signal) {
+  const parsed = new URL(tarballUrl);
+  if (parsed.protocol !== "https:" || !ALLOWED_TARBALL_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) {
+    throw new Error("Untrusted update download URL.");
+  }
+  const response = await fetchImpl(tarballUrl, { signal, redirect: "follow" });
+  if (!response.ok) {
+    throw new Error(`Failed to download update package (HTTP ${response.status}).`);
+  }
+  if (response.url) {
+    const finalUrl = new URL(response.url);
+    if (finalUrl.protocol !== "https:" || !ALLOWED_TARBALL_HOSTS.has(finalUrl.hostname)) {
+      throw new Error("Untrusted update redirect URL.");
+    }
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  if (buffer.length === 0 || buffer.length > MAX_TARBALL_BYTES) {
+    throw new Error("Downloaded update package size is invalid.");
+  }
+  return buffer;
+}
+async function writeAtomicFile(targetPath, content, mode) {
+  await mkdir3(dirname3(targetPath), { recursive: true });
+  const tmp = `${targetPath}.${process.pid}.${randomUUID4()}.tmp`;
+  try {
+    await writeFile3(tmp, content, mode ? { mode } : void 0);
+    await rename3(tmp, targetPath);
+  } catch (error2) {
+    await unlink3(tmp).catch(() => {
+    });
+    throw error2;
+  }
+}
+async function tryRefreshAntigravityMcpServer(fetchImpl) {
+  const token = process.env.ANTIGRAVITY_CSRF_TOKEN;
+  if (!token) return false;
+  const addr = process.env.ANTIGRAVITY_LS_ADDRESS || "localhost:5387";
+  try {
+    const res = await fetchImpl(
+      `http://${addr}/exa.language_server_pb.LanguageServerService/RefreshMcpServers`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-codeium-csrf-token": token
+        },
+        body: JSON.stringify({ serverName: "server-ops_server-ops" }),
+        signal: AbortSignal.timeout(2500)
+      }
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+function createUpdateManager({
+  dataDir,
+  installDir,
+  currentVersion,
+  fetchImpl = globalThis.fetch,
+  npmPackage,
+  repo
+}) {
+  const metaPath = join4(dataDir, "update-meta.json");
+  let writeChain = Promise.resolve();
+  let installInFlight = false;
+  let lastCheckedInfo = null;
+  async function readMeta() {
+    try {
+      const raw = await readFile4(metaPath, "utf8");
+      const parsed = JSON.parse(raw);
+      return {
+        ignoredVersion: typeof parsed?.ignoredVersion === "string" && parsed.ignoredVersion.trim() ? parsed.ignoredVersion.trim() : null,
+        installState: parsed?.installState && typeof parsed.installState === "object" ? parsed.installState : { status: "idle" }
+      };
+    } catch {
+      return { ignoredVersion: null, installState: { status: "idle" } };
+    }
+  }
+  function writeMeta(updater) {
+    const next = writeChain.then(async () => {
+      const current = await readMeta();
+      const updated = await updater(current) ?? current;
+      await writeAtomicFile(metaPath, JSON.stringify(updated, null, 2), 384);
+      return updated;
+    });
+    writeChain = next.catch(() => {
+    });
+    return next;
+  }
+  async function getInstallState() {
+    const meta = await readMeta();
+    const state = meta.installState || { status: "idle" };
+    const active = ["preparing", "downloading", "verifying", "installing"].includes(state.status);
+    if (active && !installInFlight && Date.now() - (state.updatedAt || 0) > STALE_INSTALL_MS) {
+      const failed = {
+        status: "failed",
+        version: state.version || "",
+        error: "Update timed out.",
+        updatedAt: Date.now()
+      };
+      await writeMeta((cur) => ({ ...cur, installState: failed }));
+      return failed;
+    }
+    if (state.status === "completed" && state.version && compareSemver(currentVersion, state.version) >= 0) {
+      const idle = { status: "idle" };
+      await writeMeta((cur) => ({ ...cur, installState: idle }));
+      return idle;
+    }
+    return state;
+  }
+  async function setInstallState(nextState) {
+    const stamped = { ...nextState, updatedAt: Date.now() };
+    await writeMeta((cur) => ({ ...cur, installState: stamped }));
+    return stamped;
+  }
+  return {
+    async check({ force = false } = {}) {
+      const info = await checkForUpdates({
+        currentVersion,
+        fetchImpl,
+        ...npmPackage ? { npmPackage } : {},
+        ...repo ? { repo } : {}
+      });
+      lastCheckedInfo = info;
+      const meta = await readMeta();
+      const installState = await getInstallState();
+      const managed = await isManagedPluginDir(installDir);
+      const canInstall = Boolean(
+        info.hasUpdate && managed && info.dist?.tarballUrl && (info.dist?.integrity || info.dist?.shasum)
+      );
+      const ignored = Boolean(
+        !force && info.hasUpdate && meta.ignoredVersion && compareSemver(info.latestVersion, meta.ignoredVersion) <= 0
+      );
+      return {
+        currentVersion: info.currentVersion,
+        latestVersion: info.latestVersion,
+        hasUpdate: info.hasUpdate,
+        releaseUrl: info.releaseUrl,
+        releaseName: info.releaseName,
+        summary: info.summary || "",
+        canInstall,
+        ignored,
+        ignoredVersion: meta.ignoredVersion,
+        installState,
+        checkedAt: info.checkedAt
+      };
+    },
+    async dismiss(version2) {
+      const clean = String(version2 || "").trim().replace(/^v/i, "");
+      const updated = await writeMeta((cur) => ({
+        ...cur,
+        ignoredVersion: clean || null
+      }));
+      return { ignoredVersion: updated.ignoredVersion };
+    },
+    async status() {
+      return getInstallState();
+    },
+    async startInstall(expectedVersion) {
+      const targetVersion = String(expectedVersion || "").trim().replace(/^v/i, "");
+      if (!targetVersion) {
+        throw new Error("Target version is required.");
+      }
+      const existing = await getInstallState();
+      if (installInFlight || ["preparing", "downloading", "verifying", "installing"].includes(existing.status)) {
+        return existing;
+      }
+      if (!await isManagedPluginDir(installDir)) {
+        throw new Error(
+          "In-place update is only available for installed plugins. Run `npx -y antigravity-server-ops init` to update."
+        );
+      }
+      let info = lastCheckedInfo;
+      if (!info || info.latestVersion !== targetVersion || !info.dist?.tarballUrl) {
+        info = await checkForUpdates({
+          currentVersion,
+          fetchImpl,
+          includeReleaseNotes: false,
+          ...npmPackage ? { npmPackage } : {},
+          ...repo ? { repo } : {}
+        });
+        lastCheckedInfo = info;
+      }
+      if (!info.hasUpdate || info.latestVersion !== targetVersion) {
+        throw new Error("Available version changed. Please check for updates again.");
+      }
+      if (!info.dist?.tarballUrl || !info.dist?.integrity && !info.dist?.shasum) {
+        throw new Error("This release does not provide a verifiable package for auto-update.");
+      }
+      installInFlight = true;
+      const preparingState = await setInstallState({
+        status: "preparing",
+        version: targetVersion
+      });
+      void (async () => {
+        const backupDir = join4(dataDir, `.update-backup-${randomUUID4()}`);
+        const backedUpPaths = [];
+        try {
+          await setInstallState({ status: "downloading", version: targetVersion });
+          const tgzBuffer = await downloadTarball(
+            info.dist.tarballUrl,
+            fetchImpl,
+            AbortSignal.timeout(9e4)
+          );
+          await setInstallState({ status: "verifying", version: targetVersion });
+          verifyTarballDigest(tgzBuffer, info.dist);
+          const files = extractPluginFilesFromTgz(tgzBuffer);
+          const pkgJsonRaw = files.get("plugin.json")?.toString("utf8") || "{}";
+          const pluginMeta = JSON.parse(pkgJsonRaw);
+          if (pluginMeta?.version && pluginMeta.version !== targetVersion) {
+            throw new Error(
+              `Package version mismatch: expected ${targetVersion}, got ${pluginMeta.version}.`
+            );
+          }
+          await setInstallState({ status: "installing", version: targetVersion });
+          const targetRoot = resolve(installDir);
+          for (const relPath of files.keys()) {
+            const absTarget = join4(targetRoot, ...relPath.split("/"));
+            if (await exists(absTarget)) {
+              const absBackup = join4(backupDir, ...relPath.split("/"));
+              await mkdir3(dirname3(absBackup), { recursive: true });
+              await cp(absTarget, absBackup, { force: true });
+              backedUpPaths.push(relPath);
+            }
+          }
+          try {
+            for (const [relPath, content] of files.entries()) {
+              const absTarget = join4(targetRoot, ...relPath.split("/"));
+              await writeAtomicFile(absTarget, content);
+            }
+            await chmod(join4(targetRoot, "dist", "server.mjs"), 493).catch(() => {
+            });
+          } catch (installErr) {
+            let rolledBack = false;
+            try {
+              for (const relPath of backedUpPaths) {
+                const absBackup = join4(backupDir, ...relPath.split("/"));
+                const absTarget = join4(targetRoot, ...relPath.split("/"));
+                await mkdir3(dirname3(absTarget), { recursive: true });
+                await cp(absBackup, absTarget, { force: true });
+              }
+              rolledBack = backedUpPaths.length > 0;
+            } catch {
+            }
+            await setInstallState({
+              status: rolledBack ? "rolled-back" : "failed",
+              version: targetVersion,
+              error: installErr instanceof Error ? installErr.message : String(installErr)
+            });
+            return;
+          }
+          await setInstallState({
+            status: "completed",
+            version: targetVersion,
+            reloaded: Boolean(process.env.ANTIGRAVITY_CSRF_TOKEN)
+          });
+          if (process.env.ANTIGRAVITY_CSRF_TOKEN) {
+            const timer = setTimeout(() => {
+              void tryRefreshAntigravityMcpServer(fetchImpl);
+            }, 900);
+            timer.unref?.();
+          }
+        } catch (error2) {
+          await setInstallState({
+            status: "failed",
+            version: targetVersion,
+            error: error2 instanceof Error ? error2.message : String(error2)
+          });
+        } finally {
+          installInFlight = false;
+          await rm(backupDir, { recursive: true, force: true }).catch(() => {
+          });
+        }
+      })();
+      return preparingState;
+    }
+  };
+}
+
 // src/server.mjs
 var PICKER_URI = "ui://server-ops/picker.html";
-var VERSION = "0.3.1";
+var VERSION = true ? "0.3.1" : "0.3.1";
+var DEFAULT_INSTALL_DIR = resolve2(dirname4(fileURLToPath(import.meta.url)), "..");
 var resource = {
   uri: PICKER_URI,
   name: "Server Ops",
@@ -39540,13 +40043,37 @@ var tools = [
   defineTool(
     "update_check",
     "Check npm and GitHub for a newer release of Server Ops.",
-    {},
+    {
+      force: booleanSchema
+    },
     [],
     {
       ...appOnly,
       ...readOnly
     }
   ),
+  defineTool(
+    "update_dismiss",
+    "Ignore notifications for a specific Server Ops version.",
+    {
+      version: stringSchema
+    },
+    ["version"],
+    appOnly
+  ),
+  defineTool(
+    "update_install",
+    "Download, verify, and install a newer release of Server Ops in place.",
+    {
+      version: stringSchema
+    },
+    ["version"],
+    appOnly
+  ),
+  defineTool("update_status", "Read current in-place update progress.", {}, [], {
+    ...appOnly,
+    ...readOnly
+  }),
   defineTool(
     "profile_delete",
     "Delete a saved SSH server profile and its stored credentials.",
@@ -39604,6 +40131,8 @@ var profileSaveSchema = external_exports.object({
   bypassProxy: external_exports.boolean().optional()
 });
 var profileIdSchema = external_exports.object({ profileId: external_exports.string().min(1) });
+var updateCheckSchema = external_exports.object({ force: external_exports.boolean().optional() });
+var updateVersionSchema = external_exports.object({ version: external_exports.string() });
 var remoteRunSchema = external_exports.object({
   serverId: external_exports.string().min(1),
   command: external_exports.string().trim().min(1).max(16384)
@@ -39616,26 +40145,28 @@ var serverCopySchema = external_exports.object({
 });
 function parseCliArgs(argv) {
   const options = {
-    dataDir: process.env.SERVER_OPS_DATA_DIR || join4(homedir2(), ".config", "server-ops"),
-    workspaceDir: process.env.SERVER_OPS_WORKSPACE || ""
+    dataDir: process.env.SERVER_OPS_DATA_DIR || join5(homedir2(), ".config", "server-ops"),
+    workspaceDir: process.env.SERVER_OPS_WORKSPACE || "",
+    installDir: process.env.SERVER_OPS_PLUGIN_DIR || DEFAULT_INSTALL_DIR
   };
   for (const arg of argv) {
     if (arg.startsWith("--data-dir=")) options.dataDir = arg.slice("--data-dir=".length);
     else if (arg.startsWith("--workspace=")) options.workspaceDir = arg.slice("--workspace=".length);
+    else if (arg.startsWith("--plugin-dir=")) options.installDir = arg.slice("--plugin-dir=".length);
   }
   return options;
 }
 async function resolveUploadSource(sourceInput, workspaceDir) {
   if (workspaceDir) {
     const workspace = await realpath(workspaceDir);
-    const source = await realpath(resolve(workspace, sourceInput));
+    const source = await realpath(resolve2(workspace, sourceInput));
     const within = relative(workspace, source);
     if (within === ".." || within.startsWith(`..${sep}`) || isAbsolute(within) || !(await stat(source)).isFile()) {
       throw new Error("Choose a file inside the configured workspace.");
     }
     return source;
   }
-  const candidate = isAbsolute(sourceInput) ? sourceInput : resolve(process.cwd(), sourceInput);
+  const candidate = isAbsolute(sourceInput) ? sourceInput : resolve2(process.cwd(), sourceInput);
   const resolved = await realpath(candidate);
   if (!(await stat(resolved)).isFile()) {
     throw new Error("Source path must be an existing file.");
@@ -39646,6 +40177,11 @@ async function main(argv = process.argv.slice(2)) {
   const options = parseCliArgs(argv);
   const credentialStore = createCredentialStore(options.dataDir);
   const profileStore = createProfileStore(options.dataDir, credentialStore);
+  const updateManager = createUpdateManager({
+    dataDir: options.dataDir,
+    installDir: options.installDir,
+    currentVersion: VERSION
+  });
   const server = new Server(
     { name: "server-ops", version: VERSION },
     { capabilities: { tools: {}, resources: {} } }
@@ -39654,8 +40190,8 @@ async function main(argv = process.argv.slice(2)) {
   server.setRequestHandler(ListResourcesRequestSchema, () => ({ resources: [resource] }));
   server.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
     if (params.uri !== PICKER_URI) throw new Error("Unknown resource.");
-    const htmlPath = process.env.SERVER_OPS_PICKER_HTML ? resolve(process.env.SERVER_OPS_PICKER_HTML) : new URL("./picker.html", import.meta.url);
-    const text = await readFile4(htmlPath, "utf8");
+    const htmlPath = process.env.SERVER_OPS_PICKER_HTML ? resolve2(process.env.SERVER_OPS_PICKER_HTML) : new URL("./picker.html", import.meta.url);
+    const text = await readFile5(htmlPath, "utf8");
     return { contents: [{ ...resource, text }] };
   });
   server.setRequestHandler(CallToolRequestSchema, async ({ params }, extra) => {
@@ -39664,7 +40200,10 @@ async function main(argv = process.argv.slice(2)) {
         throw new Error("Unknown server-ops tool.");
       }
       if (params.name === "open_server_picker") {
-        const snap = await profileStore.snapshot();
+        const [snap, installState] = await Promise.all([
+          profileStore.snapshot(),
+          updateManager.status()
+        ]);
         const selectedNames = snap.profiles.filter((p) => snap.serverIds.includes(p.id)).map((p) => p.name);
         return {
           content: [
@@ -39673,18 +40212,22 @@ async function main(argv = process.argv.slice(2)) {
               text: selectedNames.length > 0 ? `Server Ops opened. Authorized servers: ${selectedNames.join(", ")}.` : "Server Ops opened. Add or select SSH servers to authorize them."
             }
           ],
-          structuredContent: { ...snap, version: VERSION }
+          structuredContent: { ...snap, version: VERSION, installState }
         };
       }
       if (params.name === "picker_read") {
-        const snap = await profileStore.snapshot();
+        const [snap, installState] = await Promise.all([
+          profileStore.snapshot(),
+          updateManager.status()
+        ]);
         return {
           content: [{ type: "text", text: "Server profiles loaded." }],
-          structuredContent: { ...snap, version: VERSION }
+          structuredContent: { ...snap, version: VERSION, installState }
         };
       }
       if (params.name === "update_check") {
-        const info = await checkForUpdates({ currentVersion: VERSION });
+        const { force } = updateCheckSchema.parse(params.arguments ?? {});
+        const info = await updateManager.check({ force: Boolean(force) });
         return {
           content: [
             {
@@ -39693,6 +40236,29 @@ async function main(argv = process.argv.slice(2)) {
             }
           ],
           structuredContent: info
+        };
+      }
+      if (params.name === "update_dismiss") {
+        const { version: version2 } = updateVersionSchema.parse(params.arguments ?? {});
+        const result = await updateManager.dismiss(version2);
+        return {
+          content: [{ type: "text", text: "Update notification preference saved." }],
+          structuredContent: result
+        };
+      }
+      if (params.name === "update_install") {
+        const { version: version2 } = updateVersionSchema.parse(params.arguments ?? {});
+        const state = await updateManager.startInstall(version2);
+        return {
+          content: [{ type: "text", text: `Update ${state.status} for v${state.version}.` }],
+          structuredContent: state
+        };
+      }
+      if (params.name === "update_status") {
+        const state = await updateManager.status();
+        return {
+          content: [{ type: "text", text: `Update status: ${state.status}.` }],
+          structuredContent: state
         };
       }
       if (params.name === "picker_save") {

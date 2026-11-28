@@ -3,6 +3,8 @@ import { chmod, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
+const pkg = JSON.parse(await readFile(new URL("package.json", import.meta.url), "utf8"));
+const versionDefine = { __SERVER_OPS_VERSION__: JSON.stringify(pkg.version) };
 const nodeBanner =
   '#!/usr/bin/env node\nimport { createRequire } from "node:module"; import { fileURLToPath as __fileURLToPath } from "node:url"; import { dirname as __pathDirname } from "node:path"; const require = createRequire(import.meta.url); const __filename = __fileURLToPath(import.meta.url); const __dirname = __pathDirname(__filename);';
 
@@ -16,6 +18,7 @@ await Promise.all([
     format: "esm",
     target: "node20",
     external: ["cpu-features"],
+    define: versionDefine,
     banner: { js: nodeBanner },
   }),
   build({
@@ -27,6 +30,7 @@ await Promise.all([
     format: "esm",
     target: "node20",
     external: ["cpu-features"],
+    define: versionDefine,
     banner: { js: nodeBanner },
   }),
 ]);
@@ -41,6 +45,7 @@ const panel = await build({
   entryPoints: ["src/picker.mjs"],
   bundle: true,
   format: "iife",
+  define: versionDefine,
   write: false,
 });
 
